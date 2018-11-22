@@ -13,9 +13,11 @@ namespace MaxKagamine.Moq.HttpClient.Test
         [Fact]
         public async Task MatchesAnyRequest()
         {
+            // Just as one would create a Mock<HttpMessageHandler>, but using a subclass instead
+            // which provides the request helpers and direct mocking of the protected SendAsync()
             var handler = new MockHttpMessageHandler();
-            var client = handler.CreateClient();
-            
+            var client = handler.CreateClient(); // Equivalent to `new HttpClient(handler.Object, false)`
+
             var response = new HttpResponseMessage()
             {
                 Content = new StringContent("foo")
@@ -23,12 +25,13 @@ namespace MaxKagamine.Moq.HttpClient.Test
 
             handler.SetupAnyRequest()
                 .ReturnsAsync(response);
-            
+
+            // All requests made with HttpClient go through the handler's SendAsync() which we've mocked
             (await client.GetAsync("http://localhost")).Should().BeSameAs(response);
             (await client.PostAsync("https://example.com/foo", new StringContent("data"))).Should().BeSameAs(response);
             (await client.GetStringAsync("https://example.com/bar")).Should().Be("foo");
 
-            // Verify methods are provided to match the setup helpers
+            // Verify methods are provided matching the setup helpers
             handler.VerifyAnyRequest(Times.Exactly(3));
         }
 
@@ -47,28 +50,36 @@ namespace MaxKagamine.Moq.HttpClient.Test
             // The helpers return the same fluent api as the regular Setup, so we can use the normal
             // Moq methods for more complex responses
             handler.SetupRequest(enUrl)
-                .ReturnsAsync((HttpRequestMessage request, CancellationToken cancellationToken) =>
+                .Returns(async (HttpRequestMessage request, CancellationToken cancellationToken) =>
                     new HttpResponseMessage()
                     {
-                        Content = new StringContent($"Hello, {request.Content.ReadAsStringAsync().Result}")
+                        Content = new StringContent($"Hello, {await request.Content.ReadAsStringAsync()}")
                     });
 
             handler.SetupRequest(jaUrl)
-                .ReturnsAsync((HttpRequestMessage request, CancellationToken cancellationToken) =>
+                .Returns(async (HttpRequestMessage request, CancellationToken cancellationToken) =>
                     new HttpResponseMessage()
                     {
-                        Content = new StringContent($"こんにちは、{request.Content.ReadAsStringAsync().Result}")
+                        Content = new StringContent($"こんにちは、{await request.Content.ReadAsStringAsync()}")
                     });
 
-            var enResponse = await client.PostAsync(enUrl, new StringContent("world"));
-            var jaResponse = await client.PostAsync(jaUrl, new StringContent("世界"));
+            // Imagine we have a service that returns a greeting for a given locale
+            async Task<string> GetGreeting(string locale, string name)
+            {
+                var response = await client.PostAsync($"https://example.com/{locale}/hello", new StringContent(name));
+                return await response.Content.ReadAsStringAsync();
+            }
 
-            (await enResponse.Content.ReadAsStringAsync()).Should().Be("Hello, world");
-            (await jaResponse.Content.ReadAsStringAsync()).Should().Be("こんにちは、世界"); // Konnichiwa, sekai
+            // Call the "service" which we expect to make the requests set up above
+            string enGreeting = await GetGreeting("en-US", "world");
+            string jaGreeting = await GetGreeting("ja-JP", "世界");
+
+            enGreeting.Should().Be("Hello, world");
+            jaGreeting.Should().Be("こんにちは、世界"); // Konnichiwa, sekai
 
             // This handler was created with MockBehavior.Strict which throws for invocations without setups
-            Action esAttempt = () => client.PostAsync("https://example.com/es-ES/hello", new StringContent("mundo"));
-            esAttempt.Should().Throw<MockException>("a setup for Spanish was not configured");
+            Func<Task> esAttempt = () => GetGreeting("es-ES", "mundo");
+            await esAttempt.Should().ThrowAsync<MockException>("a setup for Spanish was not configured");
 
             handler.VerifyRequest(enUrl, Times.Once());
             handler.VerifyRequest(jaUrl, Times.Once());
@@ -88,6 +99,22 @@ namespace MaxKagamine.Moq.HttpClient.Test
         public void MatchesCustomPredicate()
         {
             // TODO: Demonstrate matching request body json by hand
+
+            throw new NotImplementedException();
+        }
+
+        [Fact]
+        public void VerifyHelpersThrowAsExpected()
+        {
+            // TODO: Check times and failMessage as well
+
+            throw new NotImplementedException();
+        }
+
+        [Fact]
+        public void CanMockProtectedSendAsync()
+        {
+            // TODO: One might wish to check that a method passes its CancellationToken to the http call
 
             throw new NotImplementedException();
         }
