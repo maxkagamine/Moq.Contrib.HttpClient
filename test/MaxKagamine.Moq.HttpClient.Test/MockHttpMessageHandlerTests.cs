@@ -90,9 +90,29 @@ namespace MaxKagamine.Moq.HttpClient.Test
         [InlineData("POST")]
         [InlineData("PUT")]
         [InlineData("DELETE")]
-        public void MatchesRequestByMethod(string methodStr)
+        public async Task MatchesRequestByMethod(string methodStr)
         {
-            throw new NotImplementedException();
+            var handler = new MockHttpMessageHandler(MockBehavior.Strict);
+            var client = handler.CreateClient();
+
+            var method = new HttpMethod(methodStr); // Normally you'd use HttpMethod.Get, etc.
+            var url = "https://example.com";
+            var expected = $"This is {methodStr}!";
+
+            handler.SetupRequest(method, url)
+                .ReturnsAsync(new HttpResponseMessage()
+                {
+                    Content = new StringContent(expected)
+                });
+
+            var response = await client.SendAsync(new HttpRequestMessage(method, url));
+            var actual = await response.Content.ReadAsStringAsync();
+
+            actual.Should().Be(expected);
+
+            // Ensure this isn't simply matching any request
+            Func<Task> otherMethodAttempt = () => client.SendAsync(new HttpRequestMessage(HttpMethod.Patch, url));
+            await otherMethodAttempt.Should().ThrowAsync<MockException>("the setup should not match a PATCH request");
         }
 
         [Fact]
