@@ -8,7 +8,7 @@ using Moq.Protected;
 
 namespace MaxKagamine.Moq.HttpClient
 {
-    public static class VerifyRequestExtensions
+    public static partial class MockHttpMessageHandlerExtensions
     {
         /// <summary>
         /// Verifies that a specific invocation matching the given expression was performed on the mock.

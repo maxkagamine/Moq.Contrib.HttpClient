@@ -9,7 +9,7 @@ using Moq.Protected;
 
 namespace MaxKagamine.Moq.HttpClient
 {
-    public static class SetupRequestExtensions
+    public static partial class MockHttpMessageHandlerExtensions
     {
         /// <summary>
         /// Specifies a setup on the mocked type for a call to a value-returning method.

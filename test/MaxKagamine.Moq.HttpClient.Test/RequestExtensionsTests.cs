@@ -14,14 +14,12 @@ using Xunit;
 
 namespace MaxKagamine.Moq.HttpClient.Test
 {
-    public class MockHttpMessageHandlerTests
+    public class RequestExtensionsTests
     {
         [Fact]
         public async Task MatchesAnyRequest()
         {
-            // Just as one would create a Mock<HttpMessageHandler>, but using a subclass instead
-            // which provides the request helpers and direct mocking of the protected SendAsync()
-            var handler = new MockHttpMessageHandler();
+            var handler = new Mock<HttpMessageHandler>();
             var client = handler.CreateClient(); // Equivalent to `new HttpClient(handler.Object, false)`
 
             var response = new HttpResponseMessage()
@@ -44,12 +42,12 @@ namespace MaxKagamine.Moq.HttpClient.Test
         [Fact]
         public async Task MatchesRequestByUrl()
         {
-            var handler = new MockHttpMessageHandler(MockBehavior.Strict);
+            var handler = new Mock<HttpMessageHandler>(MockBehavior.Strict);
             var client = handler.CreateClient();
 
             // Here we're basing the language off the url, but since it's Moq, we could also specify
-            // a setup that checks the Accept-Language header or any other criteria (a helper is
-            // provided to simplify checking the HttpRequestMessage; see other test below)
+            // a setup that checks the Accept-Language header or any other criteria (overloads taking
+            // predicates are provided to simplify checking the HttpRequestMessage; see other test below)
             var enUrl = "https://example.com/en-US/hello";
             var jaUrl = "https://example.com/ja-JP/hello";
 
@@ -98,7 +96,7 @@ namespace MaxKagamine.Moq.HttpClient.Test
         [InlineData("DELETE")]
         public async Task MatchesRequestByMethod(string methodStr)
         {
-            var handler = new MockHttpMessageHandler(MockBehavior.Strict);
+            var handler = new Mock<HttpMessageHandler>(MockBehavior.Strict);
             var client = handler.CreateClient();
 
             var method = new HttpMethod(methodStr); // Normally you'd use HttpMethod.Get, etc.
@@ -124,7 +122,7 @@ namespace MaxKagamine.Moq.HttpClient.Test
         [Fact]
         public async Task MatchesCustomPredicate()
         {
-            var handler = new MockHttpMessageHandler();
+            var handler = new Mock<HttpMessageHandler>();
             var client = handler.CreateClient();
 
             // Simulating posting a song to a music API

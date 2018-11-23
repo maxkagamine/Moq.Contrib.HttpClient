@@ -5,6 +5,9 @@ using System.Threading.Tasks;
 
 namespace MaxKagamine.Moq.HttpClient
 {
+    /// <summary>
+    /// An interface to facilitate mocking the protected <see cref="HttpMessageHandler.SendAsync(HttpRequestMessage, CancellationToken)" /> method.
+    /// </summary>
     public interface IHttpMessageHandler
     {
         /// <summary>
