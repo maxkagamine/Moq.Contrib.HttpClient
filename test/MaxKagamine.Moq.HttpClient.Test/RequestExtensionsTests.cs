@@ -23,6 +23,8 @@ namespace MaxKagamine.Moq.HttpClient.Test
             var handler = new Mock<HttpMessageHandler>();
             var client = handler.CreateClient(); // Equivalent to `new HttpClient(handler.Object, false)`
 
+            // These tests exclusively cover the request helpers; responses such as this
+            // can be done more easily using the response helpers (see other test class)
             var response = new HttpResponseMessage()
             {
                 Content = new StringContent("foo")
@@ -105,7 +107,7 @@ namespace MaxKagamine.Moq.HttpClient.Test
             var expected = $"This is {methodStr}!";
 
             handler.SetupRequest(method, url)
-                .ReturnsAsync(new HttpResponseMessage()
+                .ReturnsAsync(new HttpResponseMessage() // Or, using the response helpers: .ReturnsResponse(expected)
                 {
                     Content = new StringContent(expected)
                 });
@@ -147,11 +149,11 @@ namespace MaxKagamine.Moq.HttpClient.Test
                     var json = JObject.Parse(await request.Content.ReadAsStringAsync());
                     return json.Value<string>("title") == model.Title;
                 })
-                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.Created));
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.Created)); // .ReturnsResponse(HttpStatusCode.Created)
 
             // A request without a valid auth token should fail (the last setup takes precedence)
             handler.SetupRequest(r => r.Headers.Authorization?.Parameter != token)
-                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.Unauthorized));
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.Unauthorized)); // .ReturnsResponse(HttpStatusCode.Unauthorized)
 
             // Imaginary service method
             async Task CreateTrack(object trackModel, string authToken)
