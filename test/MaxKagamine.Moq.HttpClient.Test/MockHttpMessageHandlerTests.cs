@@ -1,9 +1,15 @@
 ﻿using System;
+using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Moq;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Serialization;
 using Xunit;
 
 namespace MaxKagamine.Moq.HttpClient.Test
@@ -116,11 +122,61 @@ namespace MaxKagamine.Moq.HttpClient.Test
         }
 
         [Fact]
-        public void MatchesCustomPredicate()
+        public async Task MatchesCustomPredicate()
         {
-            // TODO: Demonstrate matching request body json by hand
+            var handler = new MockHttpMessageHandler();
+            var client = handler.CreateClient();
 
-            throw new NotImplementedException();
+            // Simulating posting a song to a music API
+            var url = new Uri("https://example.com/api/songs");
+            var token = "auth token obtained somehow";
+            var model = new
+            {
+                Artist = "regulus feat. 初音ミク Append (Dark)",
+                Title = "Schwarzer Regen",
+                Album = "そこにいたこと",
+                Url = "https://vocadb.net/S/70731"
+            };
+
+            // Set up a response for a request with this track
+            handler
+                .SetupRequest(HttpMethod.Post, url, async request =>
+                {
+                    // Here we can parse the request json
+                    var json = JObject.Parse(await request.Content.ReadAsStringAsync());
+                    return json.Value<string>("title") == model.Title;
+                })
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.Created));
+
+            // A request without a valid auth token should fail (the last setup takes precedence)
+            handler.SetupRequest(r => r.Headers.Authorization?.Parameter != token)
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.Unauthorized));
+
+            // Imaginary service method
+            async Task CreateTrack(object trackModel, string authToken)
+            {
+                var json = JsonConvert.SerializeObject(trackModel, new JsonSerializerSettings()
+                {
+                    ContractResolver = new CamelCasePropertyNamesContractResolver()
+                });
+
+                var request = new HttpRequestMessage(HttpMethod.Post, url)
+                {
+                    Content = new StringContent(json, Encoding.UTF8, "application/json")
+                };
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
+
+                var response = await client.SendAsync(request);
+                response.EnsureSuccessStatusCode();
+            }
+
+            // Create the track
+            await CreateTrack(model, token);
+
+            // Attempt to create the track again, this time without a valid token
+            // (Rolling two unit tests into one if we were really testing a service)
+            Func<Task> unauthorizedAttempt = () => CreateTrack(model, "expired token");
+            await unauthorizedAttempt.Should().ThrowAsync<HttpRequestException>("this should 400");
         }
 
         [Fact]
