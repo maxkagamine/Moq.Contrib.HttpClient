@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -122,6 +123,8 @@ namespace MaxKagamine.Moq.HttpClient.Test
         [Fact]
         public async Task MatchesCustomPredicate()
         {
+            // Note that if SendAsync() doesn't return a value, i.e. in Loose mode (the
+            // default) with no setup, HttpClient will throw anyway rather than return null
             var handler = new Mock<HttpMessageHandler>();
             var client = handler.CreateClient();
 
@@ -178,19 +181,52 @@ namespace MaxKagamine.Moq.HttpClient.Test
         }
 
         [Fact]
-        public void VerifyHelpersThrowAsExpected()
+        public async Task VerifyHelpersThrowAsExpected()
         {
-            // TODO: Check times and failMessage as well
+            var handler = new Mock<HttpMessageHandler>();
+            var client = handler.CreateClient();
 
-            throw new NotImplementedException();
-        }
+            // Mock two different endpoints
+            string fooUrl = "https://example.com/foo";
+            string barUrl = "https://example.com/bar";
 
-        [Fact]
-        public void CanMockProtectedSendAsync()
-        {
-            // TODO: One might wish to check that a method passes its CancellationToken to the http call
+            handler.SetupRequest(fooUrl)
+                .ReturnsAsync(new HttpResponseMessage());
 
-            throw new NotImplementedException();
+            handler.SetupRequest(barUrl)
+                .ReturnsAsync(new HttpResponseMessage());
+
+            // Make various calls
+            await client.GetAsync(fooUrl);
+            await client.PostAsync(fooUrl, new StringContent("stuff"));
+            await client.GetAsync(barUrl);
+
+            // Prepare verify attempts using various overloads
+            Action verifyThreeRequests = () => handler.VerifyAnyRequest(Times.Exactly(3));
+            Action verifyMoreThanThreeRequests = () => handler.VerifyAnyRequest(Times.AtLeast(4), "oh noes");
+            Action verifyTwoFoos = () => handler.VerifyRequest(fooUrl, Times.Exactly(2));
+            Action verifyThreeFoos = () => handler.VerifyRequest(fooUrl, Times.Exactly(3), "oh noes");
+            Action verifyFooPosted = () => handler.VerifyRequest(HttpMethod.Post, fooUrl);
+            Action verifyBarPosted = () => handler.VerifyRequest(HttpMethod.Post, barUrl, failMessage: "oh noes");
+            Action verifyFooPostedStuff = () => handler.VerifyRequest(HttpMethod.Post, fooUrl,
+                async r => (await r.Content.ReadAsStringAsync()) == "stuff");
+            Action verifyFooPostedOtherStuff = () => handler.VerifyRequest(HttpMethod.Post, fooUrl,
+                async r => (await r.Content.ReadAsStringAsync()) == "other stuff", failMessage: "oh noes");
+
+            // Assert that these pass or fail accordingly
+            verifyThreeRequests.Should().NotThrow("we made three requests");
+            verifyMoreThanThreeRequests.Should().Throw<MockException>("we only made three requests");
+            verifyTwoFoos.Should().NotThrow("there were two requests to foo");
+            verifyThreeFoos.Should().Throw<MockException>("there were two requests to foo, not three");
+            verifyFooPosted.Should().NotThrow("we sent a POST to foo");
+            verifyBarPosted.Should().Throw<MockException>("we did not send a POST to bar");
+            verifyFooPostedStuff.Should().NotThrow("we sent the string \"stuff\"");
+            verifyFooPostedOtherStuff.Should().Throw<MockException>("we sent the string \"stuff\", not \"other stuff\"");
+
+            // The fail messages should be passed along as well
+            var messages = new[] { verifyMoreThanThreeRequests, verifyThreeFoos, verifyBarPosted, verifyFooPostedOtherStuff }
+                .Select(f => { try { f(); return null; } catch (MockException ex) { return ex.Message; } });
+            messages.Should().OnlyContain(x => x.Contains("oh noes"), "all verify exceptions should contain the failMessage");
         }
     }
 }
