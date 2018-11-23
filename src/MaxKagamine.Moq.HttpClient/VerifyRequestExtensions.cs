@@ -23,7 +23,7 @@ namespace MaxKagamine.Moq.HttpClient
         /// </param>
         /// <param name="failMessage">Message to include in the thrown <see cref="MockException"/> if verification fails.</param>
         /// <exception cref="MockException">The specified invocation did not occur (or did not occur the specified number of times).</exception>
-        public static void Verify<TResult>(this Mock<HttpMessageHandler> handler, Expression<Func<IHttpMessageHandler, TResult>> expression, Times? times = null, string failMessage = null)
+        private static void Verify<TResult>(this Mock<HttpMessageHandler> handler, Expression<Func<IHttpMessageHandler, TResult>> expression, Times? times = null, string failMessage = null)
         {
             if (handler == null)
                 throw new ArgumentNullException(nameof(handler));

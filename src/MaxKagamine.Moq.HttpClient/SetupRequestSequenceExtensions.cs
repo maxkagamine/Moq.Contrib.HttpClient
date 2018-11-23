@@ -11,13 +11,22 @@ namespace MaxKagamine.Moq.HttpClient
 {
     public static partial class MockHttpMessageHandlerExtensions
     {
+        /**
+         * Moq has two types of sequences:
+         * 1. SetupSequence() which creates one setup that returns values in sequence, and
+         * 2. InSequence().Setup() which creates multiple setups under When() conditions
+         *    to ensure that they only match in order
+         *
+         * This is the former; the latter is under SetupRequestWhenExtensions
+         */
+
         /// <summary>
         /// Return a sequence of values, one per call.
         /// </summary>
         /// <typeparam name="TResult">Type of the return value. Typically omitted as it can be inferred from the expression.</typeparam>
         /// <param name="handler">The <see cref="HttpMessageHandler" /> mock.</param>
         /// <param name="expression">Lambda expression that specifies the expected method invocation.</param>
-        public static ISetupSequentialResult<TResult> SetupSequence<TResult>(this Mock<HttpMessageHandler> handler, Expression<Func<IHttpMessageHandler, TResult>> expression)
+        private static ISetupSequentialResult<TResult> SetupSequence<TResult>(this Mock<HttpMessageHandler> handler, Expression<Func<IHttpMessageHandler, TResult>> expression)
         {
             if (handler == null)
                 throw new ArgumentNullException(nameof(handler));
