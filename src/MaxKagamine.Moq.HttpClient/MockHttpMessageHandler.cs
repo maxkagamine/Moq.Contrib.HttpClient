@@ -31,44 +31,38 @@ namespace MaxKagamine.Moq.HttpClient
             => Setup(x => x.SendAsync(It.IsAny<HttpRequestMessage>(), It.IsAny<CancellationToken>()));
 
         /// <summary>
-        /// Specifies a setup for a request matching a given predicate.
+        /// Specifies a setup for a request matching the given predicate.
         /// </summary>
         /// <param name="match">The predicate used to match the request.</param>
         /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
-        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(Predicate<HttpRequestMessage> match)
-        {
-            if (match == null)
-                throw new ArgumentNullException(nameof(match));
-
-            return Setup(x => x.SendAsync(Match.Create(match), It.IsAny<CancellationToken>()));
-        }
+        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(
+            Predicate<HttpRequestMessage> match)
+            => Setup(x => x.SendAsync(RequestMatcher.Is(match), It.IsAny<CancellationToken>()));
 
         /// <summary>
-        /// Specifies a setup for a request matching a given predicate.
+        /// Specifies a setup for a request matching the given predicate.
         /// </summary>
         /// <param name="match">The predicate used to match the request.</param>
         /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
-        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(Func<HttpRequestMessage, Task<bool>> match)
-        {
-            if (match == null)
-                throw new ArgumentNullException(nameof(match));
-
-            return Setup(x => x.SendAsync(Match.Create<HttpRequestMessage>(r => match(r).Result), It.IsAny<CancellationToken>()));
-        }
+        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(
+            Func<HttpRequestMessage, Task<bool>> match)
+            => Setup(x => x.SendAsync(RequestMatcher.Is(match), It.IsAny<CancellationToken>()));
 
         /// <summary>
         /// Specifies a setup for a request matching the given <see cref="Uri" />.
         /// </summary>
         /// <param name="requestUri">The <see cref="HttpRequestMessage.RequestUri" />.</param>
-        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(Uri requestUri)
-            => SetupRequest(r => r.RequestUri == requestUri);
+        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(
+            Uri requestUri)
+            => Setup(x => x.SendAsync(RequestMatcher.Is(requestUri), It.IsAny<CancellationToken>()));
 
         /// <summary>
         /// Specifies a setup for a request matching the given URL.
         /// </summary>
         /// <param name="requestUrl">The <see cref="HttpRequestMessage.RequestUri" />.</param>
-        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(string requestUrl)
-            => SetupRequest(new Uri(requestUrl));
+        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(
+            string requestUrl)
+            => Setup(x => x.SendAsync(RequestMatcher.Is(requestUrl), It.IsAny<CancellationToken>()));
 
         /// <summary>
         /// Specifies a setup for a request matching the given <see cref="Uri" /> as well as a predicate.
@@ -76,13 +70,9 @@ namespace MaxKagamine.Moq.HttpClient
         /// <param name="requestUri">The <see cref="HttpRequestMessage.RequestUri" />.</param>
         /// <param name="match">The predicate used to match the request.</param>
         /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
-        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(Uri requestUri, Predicate<HttpRequestMessage> match)
-        {
-            if (match == null)
-                throw new ArgumentNullException(nameof(match));
-
-            return SetupRequest(r => r.RequestUri == requestUri && match(r));
-        }
+        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(
+            Uri requestUri, Predicate<HttpRequestMessage> match)
+            => Setup(x => x.SendAsync(RequestMatcher.Is(requestUri, match), It.IsAny<CancellationToken>()));
 
         /// <summary>
         /// Specifies a setup for a request matching the given <see cref="Uri" /> as well as a predicate.
@@ -90,13 +80,9 @@ namespace MaxKagamine.Moq.HttpClient
         /// <param name="requestUri">The <see cref="HttpRequestMessage.RequestUri" />.</param>
         /// <param name="match">The predicate used to match the request.</param>
         /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
-        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(Uri requestUri, Func<HttpRequestMessage, Task<bool>> match)
-        {
-            if (match == null)
-                throw new ArgumentNullException(nameof(match));
-
-            return SetupRequest(async r => r.RequestUri == requestUri && await match(r));
-        }
+        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(
+            Uri requestUri, Func<HttpRequestMessage, Task<bool>> match)
+            => Setup(x => x.SendAsync(RequestMatcher.Is(requestUri, match), It.IsAny<CancellationToken>()));
 
         /// <summary>
         /// Specifies a setup for a request matching the given URL as well as a predicate.
@@ -104,8 +90,9 @@ namespace MaxKagamine.Moq.HttpClient
         /// <param name="requestUrl">The <see cref="HttpRequestMessage.RequestUri" />.</param>
         /// <param name="match">The predicate used to match the request.</param>
         /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
-        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(string requestUrl, Predicate<HttpRequestMessage> match)
-            => SetupRequest(new Uri(requestUrl), match);
+        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(
+            string requestUrl, Predicate<HttpRequestMessage> match)
+            => Setup(x => x.SendAsync(RequestMatcher.Is(requestUrl, match), It.IsAny<CancellationToken>()));
 
         /// <summary>
         /// Specifies a setup for a request matching the given URL as well as a predicate.
@@ -113,24 +100,27 @@ namespace MaxKagamine.Moq.HttpClient
         /// <param name="requestUrl">The <see cref="HttpRequestMessage.RequestUri" />.</param>
         /// <param name="match">The predicate used to match the request.</param>
         /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
-        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(string requestUrl, Func<HttpRequestMessage, Task<bool>> match)
-            => SetupRequest(new Uri(requestUrl), match);
+        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(
+            string requestUrl, Func<HttpRequestMessage, Task<bool>> match)
+            => Setup(x => x.SendAsync(RequestMatcher.Is(requestUrl, match), It.IsAny<CancellationToken>()));
 
         /// <summary>
         /// Specifies a setup for a request matching the given method and <see cref="Uri" />.
         /// </summary>
         /// <param name="method">The <see cref="HttpRequestMessage.Method" />.</param>
         /// <param name="requestUri">The <see cref="HttpRequestMessage.RequestUri" />.</param>
-        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(HttpMethod method, Uri requestUri)
-            => SetupRequest(r => r.Method == method && r.RequestUri == requestUri);
+        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(
+            HttpMethod method, Uri requestUri)
+            => Setup(x => x.SendAsync(RequestMatcher.Is(method, requestUri), It.IsAny<CancellationToken>()));
 
         /// <summary>
         /// Specifies a setup for a request matching the given method and URL.
         /// </summary>
         /// <param name="method">The <see cref="HttpRequestMessage.Method" />.</param>
         /// <param name="requestUrl">The <see cref="HttpRequestMessage.RequestUri" />.</param>
-        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(HttpMethod method, string requestUrl)
-            => SetupRequest(method, new Uri(requestUrl));
+        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(
+            HttpMethod method, string requestUrl)
+            => Setup(x => x.SendAsync(RequestMatcher.Is(method, requestUrl), It.IsAny<CancellationToken>()));
 
         /// <summary>
         /// Specifies a setup for a request matching the given method and <see cref="Uri" /> as well as a predicate.
@@ -139,13 +129,9 @@ namespace MaxKagamine.Moq.HttpClient
         /// <param name="requestUri">The <see cref="HttpRequestMessage.RequestUri" />.</param>
         /// <param name="match">The predicate used to match the request.</param>
         /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
-        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(HttpMethod method, Uri requestUri, Predicate<HttpRequestMessage> match)
-        {
-            if (match == null)
-                throw new ArgumentNullException(nameof(match));
-
-            return SetupRequest(r => r.Method == method && r.RequestUri == requestUri && match(r));
-        }
+        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(
+            HttpMethod method, Uri requestUri, Predicate<HttpRequestMessage> match)
+            => Setup(x => x.SendAsync(RequestMatcher.Is(method, requestUri, match), It.IsAny<CancellationToken>()));
 
         /// <summary>
         /// Specifies a setup for a request matching the given method and <see cref="Uri" /> as well as a predicate.
@@ -154,13 +140,9 @@ namespace MaxKagamine.Moq.HttpClient
         /// <param name="requestUri">The <see cref="HttpRequestMessage.RequestUri" />.</param>
         /// <param name="match">The predicate used to match the request.</param>
         /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
-        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(HttpMethod method, Uri requestUri, Func<HttpRequestMessage, Task<bool>> match)
-        {
-            if (match == null)
-                throw new ArgumentNullException(nameof(match));
-
-            return SetupRequest(async r => r.Method == method && r.RequestUri == requestUri && await match(r));
-        }
+        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(
+            HttpMethod method, Uri requestUri, Func<HttpRequestMessage, Task<bool>> match)
+            => Setup(x => x.SendAsync(RequestMatcher.Is(method, requestUri, match), It.IsAny<CancellationToken>()));
 
         /// <summary>
         /// Specifies a setup for a request matching the given method and URL as well as a predicate.
@@ -169,8 +151,9 @@ namespace MaxKagamine.Moq.HttpClient
         /// <param name="requestUrl">The <see cref="HttpRequestMessage.RequestUri" />.</param>
         /// <param name="match">The predicate used to match the request.</param>
         /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
-        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(HttpMethod method, string requestUrl, Predicate<HttpRequestMessage> match)
-            => SetupRequest(method, new Uri(requestUrl), match);
+        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(
+            HttpMethod method, string requestUrl, Predicate<HttpRequestMessage> match)
+            => Setup(x => x.SendAsync(RequestMatcher.Is(method, requestUrl, match), It.IsAny<CancellationToken>()));
 
         /// <summary>
         /// Specifies a setup for a request matching the given method and URL as well as a predicate.
@@ -179,9 +162,10 @@ namespace MaxKagamine.Moq.HttpClient
         /// <param name="requestUrl">The <see cref="HttpRequestMessage.RequestUri" />.</param>
         /// <param name="match">The predicate used to match the request.</param>
         /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
-        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(HttpMethod method, string requestUrl, Func<HttpRequestMessage, Task<bool>> match)
-            => SetupRequest(method, new Uri(requestUrl), match);
-
+        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(
+            HttpMethod method, string requestUrl, Func<HttpRequestMessage, Task<bool>> match)
+            => Setup(x => x.SendAsync(RequestMatcher.Is(method, requestUrl, match), It.IsAny<CancellationToken>()));
+    
         /// <summary>
         /// Verifies that any request was sent.
         /// </summary>
@@ -195,7 +179,7 @@ namespace MaxKagamine.Moq.HttpClient
             => Verify(x => x.SendAsync(It.IsAny<HttpRequestMessage>(), It.IsAny<CancellationToken>()), times, failMessage);
 
         /// <summary>
-        /// Verifies that a request matching the given predicate was sent.
+        /// Verifies that a request was sent matching the given predicate.
         /// </summary>
         /// <param name="match">The predicate used to match the request.</param>
         /// <param name="times">
@@ -204,11 +188,28 @@ namespace MaxKagamine.Moq.HttpClient
         /// </param>
         /// <param name="failMessage">Message to include in the thrown <see cref="MockException"/> if verification fails.</param>
         /// <exception cref="MockException">The specified invocation did not occur (or did not occur the specified number of times).</exception>
-        public void VerifyRequest(Expression<Func<HttpRequestMessage, bool>> match, Times? times = null, string failMessage = null)
-            => Verify(x => x.SendAsync(It.Is(match), It.IsAny<CancellationToken>()), times, failMessage);
+        /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
+        public void VerifyRequest(
+            Predicate<HttpRequestMessage> match, Times? times = null, string failMessage = null)
+            => Verify(x => x.SendAsync(RequestMatcher.Is(match), It.IsAny<CancellationToken>()), times, failMessage);
 
         /// <summary>
-        /// Verifies that a request matching the given <see cref="Uri" /> was sent.
+        /// Verifies that a request was sent matching the given predicate.
+        /// </summary>
+        /// <param name="match">The predicate used to match the request.</param>
+        /// <param name="times">
+        /// Number of times that the invocation is expected to have occurred.
+        /// If omitted, assumed to be <see cref="Times.AtLeastOnce"/>.
+        /// </param>
+        /// <param name="failMessage">Message to include in the thrown <see cref="MockException"/> if verification fails.</param>
+        /// <exception cref="MockException">The specified invocation did not occur (or did not occur the specified number of times).</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
+        public void VerifyRequest(
+            Func<HttpRequestMessage, Task<bool>> match, Times? times = null, string failMessage = null)
+            => Verify(x => x.SendAsync(RequestMatcher.Is(match), It.IsAny<CancellationToken>()), times, failMessage);
+
+        /// <summary>
+        /// Verifies that a request was sent matching the given <see cref="Uri" />.
         /// </summary>
         /// <param name="requestUri">The <see cref="HttpRequestMessage.RequestUri" />.</param>
         /// <param name="times">
@@ -217,11 +218,12 @@ namespace MaxKagamine.Moq.HttpClient
         /// </param>
         /// <param name="failMessage">Message to include in the thrown <see cref="MockException"/> if verification fails.</param>
         /// <exception cref="MockException">The specified invocation did not occur (or did not occur the specified number of times).</exception>
-        public void VerifyRequest(Uri requestUri, Times? times = null, string failMessage = null)
-            => VerifyRequest(r => r.RequestUri == requestUri);
+        public void VerifyRequest(
+            Uri requestUri, Times? times = null, string failMessage = null)
+            => Verify(x => x.SendAsync(RequestMatcher.Is(requestUri), It.IsAny<CancellationToken>()), times, failMessage);
 
         /// <summary>
-        /// Verifies that a request matching the given URL was sent.
+        /// Verifies that a request was sent matching the given URL.
         /// </summary>
         /// <param name="requestUrl">The <see cref="HttpRequestMessage.RequestUri" />.</param>
         /// <param name="times">
@@ -230,11 +232,76 @@ namespace MaxKagamine.Moq.HttpClient
         /// </param>
         /// <param name="failMessage">Message to include in the thrown <see cref="MockException"/> if verification fails.</param>
         /// <exception cref="MockException">The specified invocation did not occur (or did not occur the specified number of times).</exception>
-        public void VerifyRequest(string requestUrl, Times? times = null, string failMessage = null)
-            => VerifyRequest(new Uri(requestUrl));
+        public void VerifyRequest(
+            string requestUrl, Times? times = null, string failMessage = null)
+            => Verify(x => x.SendAsync(RequestMatcher.Is(requestUrl), It.IsAny<CancellationToken>()), times, failMessage);
 
         /// <summary>
-        /// Verifies that a request matching the given method and <see cref="Uri" /> was sent.
+        /// Verifies that a request was sent matching the given <see cref="Uri" /> as well as a predicate.
+        /// </summary>
+        /// <param name="requestUri">The <see cref="HttpRequestMessage.RequestUri" />.</param>
+        /// <param name="match">The predicate used to match the request.</param>
+        /// <param name="times">
+        /// Number of times that the invocation is expected to have occurred.
+        /// If omitted, assumed to be <see cref="Times.AtLeastOnce"/>.
+        /// </param>
+        /// <param name="failMessage">Message to include in the thrown <see cref="MockException"/> if verification fails.</param>
+        /// <exception cref="MockException">The specified invocation did not occur (or did not occur the specified number of times).</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
+        public void VerifyRequest(
+            Uri requestUri, Predicate<HttpRequestMessage> match, Times? times = null, string failMessage = null)
+            => Verify(x => x.SendAsync(RequestMatcher.Is(requestUri, match), It.IsAny<CancellationToken>()), times, failMessage);
+
+        /// <summary>
+        /// Verifies that a request was sent matching the given <see cref="Uri" /> as well as a predicate.
+        /// </summary>
+        /// <param name="requestUri">The <see cref="HttpRequestMessage.RequestUri" />.</param>
+        /// <param name="match">The predicate used to match the request.</param>
+        /// <param name="times">
+        /// Number of times that the invocation is expected to have occurred.
+        /// If omitted, assumed to be <see cref="Times.AtLeastOnce"/>.
+        /// </param>
+        /// <param name="failMessage">Message to include in the thrown <see cref="MockException"/> if verification fails.</param>
+        /// <exception cref="MockException">The specified invocation did not occur (or did not occur the specified number of times).</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
+        public void VerifyRequest(
+            Uri requestUri, Func<HttpRequestMessage, Task<bool>> match, Times? times = null, string failMessage = null)
+            => Verify(x => x.SendAsync(RequestMatcher.Is(requestUri, match), It.IsAny<CancellationToken>()), times, failMessage);
+
+        /// <summary>
+        /// Verifies that a request was sent matching the given URL as well as a predicate.
+        /// </summary>
+        /// <param name="requestUrl">The <see cref="HttpRequestMessage.RequestUri" />.</param>
+        /// <param name="match">The predicate used to match the request.</param>
+        /// <param name="times">
+        /// Number of times that the invocation is expected to have occurred.
+        /// If omitted, assumed to be <see cref="Times.AtLeastOnce"/>.
+        /// </param>
+        /// <param name="failMessage">Message to include in the thrown <see cref="MockException"/> if verification fails.</param>
+        /// <exception cref="MockException">The specified invocation did not occur (or did not occur the specified number of times).</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
+        public void VerifyRequest(
+            string requestUrl, Predicate<HttpRequestMessage> match, Times? times = null, string failMessage = null)
+            => Verify(x => x.SendAsync(RequestMatcher.Is(requestUrl, match), It.IsAny<CancellationToken>()), times, failMessage);
+
+        /// <summary>
+        /// Verifies that a request was sent matching the given URL as well as a predicate.
+        /// </summary>
+        /// <param name="requestUrl">The <see cref="HttpRequestMessage.RequestUri" />.</param>
+        /// <param name="match">The predicate used to match the request.</param>
+        /// <param name="times">
+        /// Number of times that the invocation is expected to have occurred.
+        /// If omitted, assumed to be <see cref="Times.AtLeastOnce"/>.
+        /// </param>
+        /// <param name="failMessage">Message to include in the thrown <see cref="MockException"/> if verification fails.</param>
+        /// <exception cref="MockException">The specified invocation did not occur (or did not occur the specified number of times).</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
+        public void VerifyRequest(
+            string requestUrl, Func<HttpRequestMessage, Task<bool>> match, Times? times = null, string failMessage = null)
+            => Verify(x => x.SendAsync(RequestMatcher.Is(requestUrl, match), It.IsAny<CancellationToken>()), times, failMessage);
+
+        /// <summary>
+        /// Verifies that a request was sent matching the given method and <see cref="Uri" />.
         /// </summary>
         /// <param name="method">The <see cref="HttpRequestMessage.Method" />.</param>
         /// <param name="requestUri">The <see cref="HttpRequestMessage.RequestUri" />.</param>
@@ -244,11 +311,12 @@ namespace MaxKagamine.Moq.HttpClient
         /// </param>
         /// <param name="failMessage">Message to include in the thrown <see cref="MockException"/> if verification fails.</param>
         /// <exception cref="MockException">The specified invocation did not occur (or did not occur the specified number of times).</exception>
-        public void VerifyRequest(HttpMethod method, Uri requestUri, Times? times = null, string failMessage = null)
-            => VerifyRequest(r => r.Method == method && r.RequestUri == requestUri);
+        public void VerifyRequest(
+            HttpMethod method, Uri requestUri, Times? times = null, string failMessage = null)
+            => Verify(x => x.SendAsync(RequestMatcher.Is(method, requestUri), It.IsAny<CancellationToken>()), times, failMessage);
 
         /// <summary>
-        /// Verifies that a request matching the given method and URL was sent.
+        /// Verifies that a request was sent matching the given method and URL.
         /// </summary>
         /// <param name="method">The <see cref="HttpRequestMessage.Method" />.</param>
         /// <param name="requestUrl">The <see cref="HttpRequestMessage.RequestUri" />.</param>
@@ -258,8 +326,77 @@ namespace MaxKagamine.Moq.HttpClient
         /// </param>
         /// <param name="failMessage">Message to include in the thrown <see cref="MockException"/> if verification fails.</param>
         /// <exception cref="MockException">The specified invocation did not occur (or did not occur the specified number of times).</exception>
-        public void VerifyRequest(HttpMethod method, string requestUrl, Times? times = null, string failMessage = null)
-            => VerifyRequest(method, new Uri(requestUrl));
+        public void VerifyRequest(
+            HttpMethod method, string requestUrl, Times? times = null, string failMessage = null)
+            => Verify(x => x.SendAsync(RequestMatcher.Is(method, requestUrl), It.IsAny<CancellationToken>()), times, failMessage);
+
+        /// <summary>
+        /// Verifies that a request was sent matching the given method and <see cref="Uri" /> as well as a predicate.
+        /// </summary>
+        /// <param name="method">The <see cref="HttpRequestMessage.Method" />.</param>
+        /// <param name="requestUri">The <see cref="HttpRequestMessage.RequestUri" />.</param>
+        /// <param name="match">The predicate used to match the request.</param>
+        /// <param name="times">
+        /// Number of times that the invocation is expected to have occurred.
+        /// If omitted, assumed to be <see cref="Times.AtLeastOnce"/>.
+        /// </param>
+        /// <param name="failMessage">Message to include in the thrown <see cref="MockException"/> if verification fails.</param>
+        /// <exception cref="MockException">The specified invocation did not occur (or did not occur the specified number of times).</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
+        public void VerifyRequest(
+            HttpMethod method, Uri requestUri, Predicate<HttpRequestMessage> match, Times? times = null, string failMessage = null)
+            => Verify(x => x.SendAsync(RequestMatcher.Is(method, requestUri, match), It.IsAny<CancellationToken>()), times, failMessage);
+
+        /// <summary>
+        /// Verifies that a request was sent matching the given method and <see cref="Uri" /> as well as a predicate.
+        /// </summary>
+        /// <param name="method">The <see cref="HttpRequestMessage.Method" />.</param>
+        /// <param name="requestUri">The <see cref="HttpRequestMessage.RequestUri" />.</param>
+        /// <param name="match">The predicate used to match the request.</param>
+        /// <param name="times">
+        /// Number of times that the invocation is expected to have occurred.
+        /// If omitted, assumed to be <see cref="Times.AtLeastOnce"/>.
+        /// </param>
+        /// <param name="failMessage">Message to include in the thrown <see cref="MockException"/> if verification fails.</param>
+        /// <exception cref="MockException">The specified invocation did not occur (or did not occur the specified number of times).</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
+        public void VerifyRequest(
+            HttpMethod method, Uri requestUri, Func<HttpRequestMessage, Task<bool>> match, Times? times = null, string failMessage = null)
+            => Verify(x => x.SendAsync(RequestMatcher.Is(method, requestUri, match), It.IsAny<CancellationToken>()), times, failMessage);
+
+        /// <summary>
+        /// Verifies that a request was sent matching the given method and URL as well as a predicate.
+        /// </summary>
+        /// <param name="method">The <see cref="HttpRequestMessage.Method" />.</param>
+        /// <param name="requestUrl">The <see cref="HttpRequestMessage.RequestUri" />.</param>
+        /// <param name="match">The predicate used to match the request.</param>
+        /// <param name="times">
+        /// Number of times that the invocation is expected to have occurred.
+        /// If omitted, assumed to be <see cref="Times.AtLeastOnce"/>.
+        /// </param>
+        /// <param name="failMessage">Message to include in the thrown <see cref="MockException"/> if verification fails.</param>
+        /// <exception cref="MockException">The specified invocation did not occur (or did not occur the specified number of times).</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
+        public void VerifyRequest(
+            HttpMethod method, string requestUrl, Predicate<HttpRequestMessage> match, Times? times = null, string failMessage = null)
+            => Verify(x => x.SendAsync(RequestMatcher.Is(method, requestUrl, match), It.IsAny<CancellationToken>()), times, failMessage);
+
+        /// <summary>
+        /// Verifies that a request was sent matching the given method and URL as well as a predicate.
+        /// </summary>
+        /// <param name="method">The <see cref="HttpRequestMessage.Method" />.</param>
+        /// <param name="requestUrl">The <see cref="HttpRequestMessage.RequestUri" />.</param>
+        /// <param name="match">The predicate used to match the request.</param>
+        /// <param name="times">
+        /// Number of times that the invocation is expected to have occurred.
+        /// If omitted, assumed to be <see cref="Times.AtLeastOnce"/>.
+        /// </param>
+        /// <param name="failMessage">Message to include in the thrown <see cref="MockException"/> if verification fails.</param>
+        /// <exception cref="MockException">The specified invocation did not occur (or did not occur the specified number of times).</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
+        public void VerifyRequest(
+            HttpMethod method, string requestUrl, Func<HttpRequestMessage, Task<bool>> match, Times? times = null, string failMessage = null)
+            => Verify(x => x.SendAsync(RequestMatcher.Is(method, requestUrl, match), It.IsAny<CancellationToken>()), times, failMessage);
 
         #region IProtectedAsMock
 
