@@ -34,8 +34,27 @@ namespace MaxKagamine.Moq.HttpClient
         /// Specifies a setup for a request matching a given predicate.
         /// </summary>
         /// <param name="match">The predicate used to match the request.</param>
-        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(Expression<Func<HttpRequestMessage, bool>> match)
-            => Setup(x => x.SendAsync(It.Is(match), It.IsAny<CancellationToken>()));
+        /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
+        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(Predicate<HttpRequestMessage> match)
+        {
+            if (match == null)
+                throw new ArgumentNullException(nameof(match));
+
+            return Setup(x => x.SendAsync(Match.Create(match), It.IsAny<CancellationToken>()));
+        }
+
+        /// <summary>
+        /// Specifies a setup for a request matching a given predicate.
+        /// </summary>
+        /// <param name="match">The predicate used to match the request.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
+        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(Func<HttpRequestMessage, Task<bool>> match)
+        {
+            if (match == null)
+                throw new ArgumentNullException(nameof(match));
+
+            return Setup(x => x.SendAsync(Match.Create<HttpRequestMessage>(r => match(r).Result), It.IsAny<CancellationToken>()));
+        }
 
         /// <summary>
         /// Specifies a setup for a request matching the given <see cref="Uri" />.
@@ -52,6 +71,52 @@ namespace MaxKagamine.Moq.HttpClient
             => SetupRequest(new Uri(requestUrl));
 
         /// <summary>
+        /// Specifies a setup for a request matching the given <see cref="Uri" /> as well as a predicate.
+        /// </summary>
+        /// <param name="requestUri">The <see cref="HttpRequestMessage.RequestUri" />.</param>
+        /// <param name="match">The predicate used to match the request.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
+        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(Uri requestUri, Predicate<HttpRequestMessage> match)
+        {
+            if (match == null)
+                throw new ArgumentNullException(nameof(match));
+
+            return SetupRequest(r => r.RequestUri == requestUri && match(r));
+        }
+
+        /// <summary>
+        /// Specifies a setup for a request matching the given <see cref="Uri" /> as well as a predicate.
+        /// </summary>
+        /// <param name="requestUri">The <see cref="HttpRequestMessage.RequestUri" />.</param>
+        /// <param name="match">The predicate used to match the request.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
+        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(Uri requestUri, Func<HttpRequestMessage, Task<bool>> match)
+        {
+            if (match == null)
+                throw new ArgumentNullException(nameof(match));
+
+            return SetupRequest(async r => r.RequestUri == requestUri && await match(r));
+        }
+
+        /// <summary>
+        /// Specifies a setup for a request matching the given URL as well as a predicate.
+        /// </summary>
+        /// <param name="requestUrl">The <see cref="HttpRequestMessage.RequestUri" />.</param>
+        /// <param name="match">The predicate used to match the request.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
+        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(string requestUrl, Predicate<HttpRequestMessage> match)
+            => SetupRequest(new Uri(requestUrl), match);
+
+        /// <summary>
+        /// Specifies a setup for a request matching the given URL as well as a predicate.
+        /// </summary>
+        /// <param name="requestUrl">The <see cref="HttpRequestMessage.RequestUri" />.</param>
+        /// <param name="match">The predicate used to match the request.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
+        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(string requestUrl, Func<HttpRequestMessage, Task<bool>> match)
+            => SetupRequest(new Uri(requestUrl), match);
+
+        /// <summary>
         /// Specifies a setup for a request matching the given method and <see cref="Uri" />.
         /// </summary>
         /// <param name="method">The <see cref="HttpRequestMessage.Method" />.</param>
@@ -66,6 +131,56 @@ namespace MaxKagamine.Moq.HttpClient
         /// <param name="requestUrl">The <see cref="HttpRequestMessage.RequestUri" />.</param>
         public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(HttpMethod method, string requestUrl)
             => SetupRequest(method, new Uri(requestUrl));
+
+        /// <summary>
+        /// Specifies a setup for a request matching the given method and <see cref="Uri" /> as well as a predicate.
+        /// </summary>
+        /// <param name="method">The <see cref="HttpRequestMessage.Method" />.</param>
+        /// <param name="requestUri">The <see cref="HttpRequestMessage.RequestUri" />.</param>
+        /// <param name="match">The predicate used to match the request.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
+        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(HttpMethod method, Uri requestUri, Predicate<HttpRequestMessage> match)
+        {
+            if (match == null)
+                throw new ArgumentNullException(nameof(match));
+
+            return SetupRequest(r => r.Method == method && r.RequestUri == requestUri && match(r));
+        }
+
+        /// <summary>
+        /// Specifies a setup for a request matching the given method and <see cref="Uri" /> as well as a predicate.
+        /// </summary>
+        /// <param name="method">The <see cref="HttpRequestMessage.Method" />.</param>
+        /// <param name="requestUri">The <see cref="HttpRequestMessage.RequestUri" />.</param>
+        /// <param name="match">The predicate used to match the request.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
+        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(HttpMethod method, Uri requestUri, Func<HttpRequestMessage, Task<bool>> match)
+        {
+            if (match == null)
+                throw new ArgumentNullException(nameof(match));
+
+            return SetupRequest(async r => r.Method == method && r.RequestUri == requestUri && await match(r));
+        }
+
+        /// <summary>
+        /// Specifies a setup for a request matching the given method and URL as well as a predicate.
+        /// </summary>
+        /// <param name="method">The <see cref="HttpRequestMessage.Method" />.</param>
+        /// <param name="requestUrl">The <see cref="HttpRequestMessage.RequestUri" />.</param>
+        /// <param name="match">The predicate used to match the request.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
+        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(HttpMethod method, string requestUrl, Predicate<HttpRequestMessage> match)
+            => SetupRequest(method, new Uri(requestUrl), match);
+
+        /// <summary>
+        /// Specifies a setup for a request matching the given method and URL as well as a predicate.
+        /// </summary>
+        /// <param name="method">The <see cref="HttpRequestMessage.Method" />.</param>
+        /// <param name="requestUrl">The <see cref="HttpRequestMessage.RequestUri" />.</param>
+        /// <param name="match">The predicate used to match the request.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
+        public ISetup<HttpMessageHandler, Task<HttpResponseMessage>> SetupRequest(HttpMethod method, string requestUrl, Func<HttpRequestMessage, Task<bool>> match)
+            => SetupRequest(method, new Uri(requestUrl), match);
 
         /// <summary>
         /// Verifies that any request was sent.
