@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Flurl;
 using Moq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -180,6 +181,39 @@ namespace MaxKagamine.Moq.HttpClient.Test
             // (Rolling two unit tests into one if we were really testing a service)
             Func<Task> unauthorizedAttempt = () => CreateTrack(model, "expired token");
             await unauthorizedAttempt.Should().ThrowAsync<HttpRequestException>("this should 400");
+        }
+
+        [Fact]
+        public async Task CanUseFlurlUrl()
+        {
+            var handler = new Mock<HttpMessageHandler>();
+            var client = handler.CreateClient();
+
+            // Say we're testing a service that takes a base url for api calls
+            string baseUrl = "https://example.com:8080/api/v2";
+
+            // An easier way to mock endpoints than Uri might be to use Flurl, a fluent url builder
+            // Flurl's methods return a Url type which implicitly converts back to string
+            // See https://flurl.io/docs/fluent-url/ for details
+            handler.SetupRequest(baseUrl.AppendPathSegment("search").SetQueryParam("q", "fus ro dah"))
+                .ReturnsAsync(new HttpResponseMessage());
+
+            // For more intricate url matching, we can use a predicate as shown in the other test
+            handler.SetupRequest(r =>
+            {
+                Url url = r.RequestUri;
+                return url.Path.StartsWith(baseUrl.AppendPathSegment("followers")) && url.QueryParams["name"].Equals("Lydia");
+            })
+                .ReturnsAsync(new HttpResponseMessage());
+
+            await client.GetAsync("https://example.com:8080/api/v2/search?q=fus%20ro%20dah");
+
+            // In this example we've passed additional query params that the test doesn't care about
+            await client.PostAsync("https://example.com:8080/api/v2/followers/enlist?name=Lydia&carryBurdens=yes", null);
+
+            // Verifying just to show that both setups were invoked, rather than one for both requests
+            // HttpClient would have thrown already if none had matched for a request
+            handler.VerifyAll();
         }
 
         [Fact]
