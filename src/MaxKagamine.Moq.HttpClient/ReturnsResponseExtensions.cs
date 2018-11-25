@@ -58,6 +58,7 @@ namespace MaxKagamine.Moq.HttpClient
         /// <param name="statusCode">The status code.</param>
         /// <param name="content">The response content.</param>
         /// <param name="configure">An action to further configure the response such as setting headers.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static IReturnsResult<HttpMessageHandler> ReturnsResponse(
             this ISetup<HttpMessageHandler, Task<HttpResponseMessage>> setup,
             HttpStatusCode statusCode, HttpContent content, Action<HttpResponseMessage> configure = null)
@@ -75,6 +76,7 @@ namespace MaxKagamine.Moq.HttpClient
         /// <param name="statusCode">The status code.</param>
         /// <param name="content">The response content.</param>
         /// <param name="configure">An action to further configure the response such as setting headers.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static ISetupSequentialResult<Task<HttpResponseMessage>> ReturnsResponse(
             this ISetupSequentialResult<Task<HttpResponseMessage>> setup,
             HttpStatusCode statusCode, HttpContent content, Action<HttpResponseMessage> configure = null)
@@ -94,6 +96,7 @@ namespace MaxKagamine.Moq.HttpClient
         /// <param name="mediaType">The media type. Defaults to text/plain.</param>
         /// <param name="encoding">The character encoding. Defaults to <see cref="Encoding.UTF8" />.</param>
         /// <param name="configure">An action to further configure the response such as setting headers.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static IReturnsResult<HttpMessageHandler> ReturnsResponse(
             this ISetup<HttpMessageHandler, Task<HttpResponseMessage>> setup,
             HttpStatusCode statusCode, string content, string mediaType = null, Encoding encoding = null, Action<HttpResponseMessage> configure = null)
@@ -113,6 +116,7 @@ namespace MaxKagamine.Moq.HttpClient
         /// <param name="mediaType">The media type. Defaults to text/plain.</param>
         /// <param name="encoding">The character encoding. Defaults to <see cref="Encoding.UTF8" />.</param>
         /// <param name="configure">An action to further configure the response such as setting headers.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static ISetupSequentialResult<Task<HttpResponseMessage>> ReturnsResponse(
             this ISetupSequentialResult<Task<HttpResponseMessage>> setup,
             HttpStatusCode statusCode, string content, string mediaType = null, Encoding encoding = null, Action<HttpResponseMessage> configure = null)
@@ -131,6 +135,7 @@ namespace MaxKagamine.Moq.HttpClient
         /// <param name="mediaType">The media type. Defaults to text/plain.</param>
         /// <param name="encoding">The character encoding. Defaults to <see cref="Encoding.UTF8" />.</param>
         /// <param name="configure">An action to further configure the response such as setting headers.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static IReturnsResult<HttpMessageHandler> ReturnsResponse(
             this ISetup<HttpMessageHandler, Task<HttpResponseMessage>> setup,
             string content, string mediaType = null, Encoding encoding = null, Action<HttpResponseMessage> configure = null)
@@ -144,6 +149,7 @@ namespace MaxKagamine.Moq.HttpClient
         /// <param name="mediaType">The media type. Defaults to text/plain.</param>
         /// <param name="encoding">The character encoding. Defaults to <see cref="Encoding.UTF8" />.</param>
         /// <param name="configure">An action to further configure the response such as setting headers.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static ISetupSequentialResult<Task<HttpResponseMessage>> ReturnsResponse(
             this ISetupSequentialResult<Task<HttpResponseMessage>> setup,
             string content, string mediaType = null, Encoding encoding = null, Action<HttpResponseMessage> configure = null)
@@ -157,6 +163,7 @@ namespace MaxKagamine.Moq.HttpClient
         /// <param name="content">The response body.</param>
         /// <param name="mediaType">The media type.</param>
         /// <param name="configure">An action to further configure the response such as setting headers.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static IReturnsResult<HttpMessageHandler> ReturnsResponse(
             this ISetup<HttpMessageHandler, Task<HttpResponseMessage>> setup,
             HttpStatusCode statusCode, byte[] content, string mediaType = null, Action<HttpResponseMessage> configure = null)
@@ -175,6 +182,7 @@ namespace MaxKagamine.Moq.HttpClient
         /// <param name="content">The response body.</param>
         /// <param name="mediaType">The media type.</param>
         /// <param name="configure">An action to further configure the response such as setting headers.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static ISetupSequentialResult<Task<HttpResponseMessage>> ReturnsResponse(
             this ISetupSequentialResult<Task<HttpResponseMessage>> setup,
             HttpStatusCode statusCode, byte[] content, string mediaType = null, Action<HttpResponseMessage> configure = null)
@@ -192,6 +200,7 @@ namespace MaxKagamine.Moq.HttpClient
         /// <param name="content">The response body.</param>
         /// <param name="mediaType">The media type.</param>
         /// <param name="configure">An action to further configure the response such as setting headers.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static IReturnsResult<HttpMessageHandler> ReturnsResponse(
             this ISetup<HttpMessageHandler, Task<HttpResponseMessage>> setup,
             byte[] content, string mediaType = null, Action<HttpResponseMessage> configure = null)
@@ -204,6 +213,7 @@ namespace MaxKagamine.Moq.HttpClient
         /// <param name="content">The response body.</param>
         /// <param name="mediaType">The media type.</param>
         /// <param name="configure">An action to further configure the response such as setting headers.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static ISetupSequentialResult<Task<HttpResponseMessage>> ReturnsResponse(
             this ISetupSequentialResult<Task<HttpResponseMessage>> setup,
             byte[] content, string mediaType = null, Action<HttpResponseMessage> configure = null)
@@ -217,6 +227,7 @@ namespace MaxKagamine.Moq.HttpClient
         /// <param name="content">The response body.</param>
         /// <param name="mediaType">The media type.</param>
         /// <param name="configure">An action to further configure the response such as setting headers.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static IReturnsResult<HttpMessageHandler> ReturnsResponse(
             this ISetup<HttpMessageHandler, Task<HttpResponseMessage>> setup,
             HttpStatusCode statusCode, Stream content, string mediaType = null, Action<HttpResponseMessage> configure = null)
@@ -235,6 +246,7 @@ namespace MaxKagamine.Moq.HttpClient
         /// <param name="content">The response body.</param>
         /// <param name="mediaType">The media type.</param>
         /// <param name="configure">An action to further configure the response such as setting headers.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static ISetupSequentialResult<Task<HttpResponseMessage>> ReturnsResponse(
             this ISetupSequentialResult<Task<HttpResponseMessage>> setup,
             HttpStatusCode statusCode, Stream content, string mediaType = null, Action<HttpResponseMessage> configure = null)
@@ -252,6 +264,7 @@ namespace MaxKagamine.Moq.HttpClient
         /// <param name="content">The response body.</param>
         /// <param name="mediaType">The media type.</param>
         /// <param name="configure">An action to further configure the response such as setting headers.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static IReturnsResult<HttpMessageHandler> ReturnsResponse(
             this ISetup<HttpMessageHandler, Task<HttpResponseMessage>> setup,
             Stream content, string mediaType = null, Action<HttpResponseMessage> configure = null)
@@ -264,6 +277,7 @@ namespace MaxKagamine.Moq.HttpClient
         /// <param name="content">The response body.</param>
         /// <param name="mediaType">The media type.</param>
         /// <param name="configure">An action to further configure the response such as setting headers.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static ISetupSequentialResult<Task<HttpResponseMessage>> ReturnsResponse(
             this ISetupSequentialResult<Task<HttpResponseMessage>> setup,
             Stream content, string mediaType = null, Action<HttpResponseMessage> configure = null)

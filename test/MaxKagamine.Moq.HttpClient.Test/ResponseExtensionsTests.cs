@@ -25,12 +25,41 @@ namespace MaxKagamine.Moq.HttpClient.Test
             client.BaseAddress = new Uri("https://example.com");
         }
 
+        [Fact]
+        public async Task CanSetHeaders()
+        {
+            // All overloads here take an action to further configure the response; this is
+            // more useful than a Dictionary as it allows for using the typed header properties
+            handler.SetupAnyRequest()
+                .ReturnsResponse("jinrui ni eikou are", configure: response =>
+                {
+                    response.Headers.Server.Add(new ProductInfoHeaderValue("Bunker", null));
+                    response.Headers.Add("X-Powered-By", "2B");
+                    response.Content.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment")
+                    {
+                        FileName = "yorha.txt"
+                    };
+                });
+
+            var res = await client.GetAsync("");
+            var body = await res.Content.ReadAsStringAsync();
+
+            body.Should().Be("jinrui ni eikou are", "glory to mankind");
+            res.Headers.Server.Should().NotBeNull()
+                .And.Subject.ToString().Should().Be("Bunker");
+            res.Headers.GetValues("X-Powered-By").FirstOrDefault().Should().Be("2B");
+            res.Content.Headers.ContentDisposition.Should().NotBeNull()
+                .And.Subject.ToString().Should().Be("attachment; filename=yorha.txt");
+        }
+
         [Theory]
         [InlineData(HttpStatusCode.OK)]
         [InlineData(HttpStatusCode.NotFound)]
         [InlineData(HttpStatusCode.Unauthorized)]
         public async Task RespondsWithStatusCode(HttpStatusCode statusCode)
         {
+            // These tests primarily cover the response helpers; see the other
+            // test class for the various request helpers besides SetupAnyRequest
             handler.SetupAnyRequest()
                 .ReturnsResponse(statusCode);
 
@@ -50,6 +79,8 @@ namespace MaxKagamine.Moq.HttpClient.Test
 
             if (statusCode.HasValue)
             {
+                // When using a string, byte array, or stream, the status code, media
+                // type (i.e. content type), and (for string) encoding are optional
                 handler.SetupAnyRequest()
                     .ReturnsResponse(statusCode.Value, content, mediaType, encoding);
             }
@@ -144,33 +175,6 @@ namespace MaxKagamine.Moq.HttpClient.Test
 
             var response = await client.GetAsync("");
             response.Content.Should().BeSameAs(content);
-        }
-
-        [Fact]
-        public async Task CanSetHeaders()
-        {
-            // All overloads take an action to further configure the response; this is more
-            // useful than a Dictionary as it allows for using the typed header properties
-            handler.SetupAnyRequest()
-                .ReturnsResponse("jinrui ni eikou are", configure: response =>
-                {
-                    response.Headers.Server.Add(new ProductInfoHeaderValue("Bunker", null));
-                    response.Headers.Add("X-Powered-By", "2B");
-                    response.Content.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment")
-                    {
-                        FileName = "yorha.txt"
-                    };
-                });
-
-            var res = await client.GetAsync("");
-            var body = await res.Content.ReadAsStringAsync();
-
-            body.Should().Be("jinrui ni eikou are", "glory to mankind");
-            res.Headers.Server.Should().NotBeNull()
-                .And.Subject.ToString().Should().Be("Bunker");
-            res.Headers.GetValues("X-Powered-By").FirstOrDefault().Should().Be("2B");
-            res.Content.Headers.ContentDisposition.Should().NotBeNull()
-                .And.Subject.ToString().Should().Be("attachment; filename=yorha.txt");
         }
     }
 }

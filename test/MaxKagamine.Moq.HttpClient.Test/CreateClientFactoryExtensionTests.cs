@@ -10,6 +10,9 @@ namespace MaxKagamine.Moq.HttpClient.Test
 {
     public class CreateClientFactoryExtensionTests
     {
+        // For details on IHttpClientFactory, see https://docs.microsoft.com/en-us/aspnet/core/fundamentals/http-requests
+        // (Note that ASP.NET Core's dependency injection and IHttpClientFactory can be used outside a web project)
+
         [Fact]
         public async Task CreatesFactoryFromHandler()
         {
@@ -17,13 +20,11 @@ namespace MaxKagamine.Moq.HttpClient.Test
             var factory = handler.CreateClientFactory();
             var client = factory.CreateClient();
 
-            // Each client should be a new instance
-            factory.CreateClient().Should().NotBeSameAs(client);
+            factory.CreateClient().Should().NotBeSameAs(client, "each client should be a new instance");
 
-            // Client should be backed by the handler mock
             handler.SetupAnyRequest().ReturnsResponse(HttpStatusCode.OK);
             var response = await client.GetAsync("https://example.com");
-            response.StatusCode.Should().Be(HttpStatusCode.OK);
+            response.StatusCode.Should().Be(HttpStatusCode.OK, "the client should be backed by the handler mock");
         }
 
         [Fact]
@@ -42,8 +43,8 @@ namespace MaxKagamine.Moq.HttpClient.Test
                     return client;
                 });
 
-            factory.CreateClient("api").BaseAddress.Should().Be(apiBaseUrl);
-            factory.CreateClient().BaseAddress.Should().NotBe(apiBaseUrl);
+            factory.CreateClient("api").BaseAddress.Should().Be(apiBaseUrl, "the api named client had a BaseAddress configured");
+            factory.CreateClient().BaseAddress.Should().NotBe(apiBaseUrl, "other clients should not be affected");
         }
     }
 }

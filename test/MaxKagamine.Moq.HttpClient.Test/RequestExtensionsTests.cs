@@ -142,7 +142,7 @@ namespace MaxKagamine.Moq.HttpClient.Test
                 Url = "https://vocadb.net/S/70731"
             };
 
-            // Set up a response for a request with this track
+            // Set up a response for a request with this song
             handler
                 .SetupRequest(HttpMethod.Post, url, async request =>
                 {
@@ -157,9 +157,9 @@ namespace MaxKagamine.Moq.HttpClient.Test
                 .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.Unauthorized)); // .ReturnsResponse(HttpStatusCode.Unauthorized)
 
             // Imaginary service method
-            async Task CreateTrack(object trackModel, string authToken)
+            async Task CreateSong(object song, string authToken)
             {
-                var json = JsonConvert.SerializeObject(trackModel, new JsonSerializerSettings()
+                var json = JsonConvert.SerializeObject(song, new JsonSerializerSettings()
                 {
                     ContractResolver = new CamelCasePropertyNamesContractResolver()
                 });
@@ -174,12 +174,24 @@ namespace MaxKagamine.Moq.HttpClient.Test
                 response.EnsureSuccessStatusCode();
             }
 
-            // Create the track
-            await CreateTrack(model, token);
+            // Create the song
+            await CreateSong(model, token);
 
-            // Attempt to create the track again, this time without a valid token
+            // The setup won't match now if the request json contains a different song
+            Func<Task> wrongSongAttempt = () => CreateSong(new
+            {
+                Artist = "鼻そうめんP feat. 初音ミク",
+                Title = "Plug Out (HSP 2012 Remix)",
+                Album = "Hiroyuki ODA pres. HSP WORKS 11-14",
+                Url = "https://vocadb.net/S/21567"
+            }, token);
+
+            // Loose mode, so HttpClient receives null and throws InvalidOperationException instead
+            await wrongSongAttempt.Should().ThrowAsync<InvalidOperationException>("wrong request body");
+
+            // Attempt to create the song again, this time without a valid token
             // (Rolling two unit tests into one if we were really testing a service)
-            Func<Task> unauthorizedAttempt = () => CreateTrack(model, "expired token");
+            Func<Task> unauthorizedAttempt = () => CreateSong(model, "expired token");
             await unauthorizedAttempt.Should().ThrowAsync<HttpRequestException>("this should 400");
         }
 

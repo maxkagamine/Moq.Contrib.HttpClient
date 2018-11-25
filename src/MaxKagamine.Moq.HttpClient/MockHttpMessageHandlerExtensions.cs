@@ -40,7 +40,7 @@ namespace MaxKagamine.Moq.HttpClient
             var mock = new Mock<IHttpClientFactory>();
 
             mock.Setup(x => x.CreateClient(It.IsAny<string>()))
-                .Returns(() => handler.CreateClient());
+                .Returns(handler.CreateClient);
 
             return mock.Object;
         }
