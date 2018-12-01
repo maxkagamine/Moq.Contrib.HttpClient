@@ -10,6 +10,12 @@ namespace MaxKagamine.Moq.HttpClient
     /// </summary>
     public static class RequestMatcher
     {
+        /**
+         * The methods here are used to automatically generate the RequestExtensions.
+         * Summaries must start with "A request matching", and parameters must be on a single line.
+         * Verify any changes in the generated code.
+         */
+
         /// <summary>
         /// A request matching the given predicate.
         /// </summary>
