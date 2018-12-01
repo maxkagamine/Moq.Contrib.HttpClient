@@ -12,7 +12,7 @@
     <PackageTags>moq http httpclient mock mocking test testing</PackageTags>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/maxkagamine/Moq.HttpClient</RepositoryUrl>
-    <Version>1.0.0-alpha</Version>
+    <Version>1.0.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
