@@ -211,7 +211,8 @@ namespace MaxKagamine.Moq.HttpClient.Test
                 .ReturnsAsync(new HttpResponseMessage());
 
             // For more intricate url matching, we can use a predicate as shown in the other test
-            handler.SetupRequest(r =>
+            // The method parameter can also be used without a specific url when using a predicate to match the url instead
+            handler.SetupRequest(HttpMethod.Post, r =>
             {
                 Url url = r.RequestUri;
                 return url.Path.StartsWith(baseUrl.AppendPathSegment("followers")) && url.QueryParams["name"].Equals("Lydia");

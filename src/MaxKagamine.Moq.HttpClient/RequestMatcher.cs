@@ -107,6 +107,38 @@ namespace MaxKagamine.Moq.HttpClient
             => Is(new Uri(requestUrl), match);
 
         /// <summary>
+        /// A request matching the given method as well as a predicate.
+        /// </summary>
+        /// <param name="method">The <see cref="HttpRequestMessage.Method" />.</param>
+        /// <param name="match">The predicate used to match the request.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
+        public static HttpRequestMessage Is(HttpMethod method, Predicate<HttpRequestMessage> match)
+        {
+            if (match == null)
+                throw new ArgumentNullException(nameof(match));
+
+            return Match.Create(
+                r => r.Method == method && match(r),
+                () => Is(method, match));
+        }
+
+        /// <summary>
+        /// A request matching the given method as well as a predicate.
+        /// </summary>
+        /// <param name="method">The <see cref="HttpRequestMessage.Method" />.</param>
+        /// <param name="match">The predicate used to match the request.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
+        public static HttpRequestMessage Is(HttpMethod method, Func<HttpRequestMessage, Task<bool>> match)
+        {
+            if (match == null)
+                throw new ArgumentNullException(nameof(match));
+
+            return Match.Create(
+                r => r.Method == method && match(r).Result, // Blocking
+                () => Is(method, match));
+        }
+
+        /// <summary>
         /// A request matching the given method and <see cref="Uri" />.
         /// </summary>
         /// <param name="method">The <see cref="HttpRequestMessage.Method" />.</param>

@@ -42,7 +42,7 @@ All Setup and Verify helpers have the same overloads, abbreviated here:
 
 ```csharp
 SetupAnyRequest()
-SetupRequest(Predicate<HttpRequestMessage> match)
+SetupRequest([HttpMethod method, ]Predicate<HttpRequestMessage> match)
 SetupRequest(string|Uri requestUrl[, Predicate<HttpRequestMessage> match])
 SetupRequest(HttpMethod method, string|Uri requestUrl[, Predicate<HttpRequestMessage> match])
 ```
