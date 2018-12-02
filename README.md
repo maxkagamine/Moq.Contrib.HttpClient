@@ -2,6 +2,8 @@
 
 [![NuGet](https://img.shields.io/nuget/v/MaxKagamine.Moq.HttpClient.svg)](https://www.nuget.org/packages/MaxKagamine.Moq.HttpClient/) [![Travis](https://img.shields.io/travis/com/maxkagamine/Moq.HttpClient.svg)](https://travis-ci.com/maxkagamine/Moq.HttpClient)
 
+[日本語](README.ja.md)
+
 A set of extension methods for mocking HttpClient and IHttpClientFactory with Moq.
 
 Mocking HttpClient directly is [notoriously difficult](https://github.com/dotnet/corefx/issues/1624); the general approach has been to either create a wrapper of some form to mock instead or use a specific testing library. However, the former is typically undesirable, and the latter requires switching to a separate mocking system for HTTP calls which may be less flexible or awkward in conjunction with other mocks. These extensions instead allow HttpClient to be mocked the same way as everything else using Moq without excessive boilerplate.
