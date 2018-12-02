@@ -18,26 +18,25 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Http" Version="2.1.1" />
     <PackageReference Include="Moq" Version="[4.8.0,5)" />
-    <PackageReference Include="Scripty.MsBuild" Version="0.7.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="RequestExtensions.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>RequestExtensions.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
   </ItemGroup>
 
   <ItemGroup>
     <Compile Update="RequestExtensions.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
-      <DependentUpon>RequestExtensions.csx</DependentUpon>
+      <DependentUpon>RequestExtensions.tt</DependentUpon>
     </Compile>
   </ItemGroup>
-
-  <!--
-    The generated file is added above in order to set DependentUpon so it appears nested under the csx file
-    in the Solution Explorer, but since Scripty will automatically add it to the Compile list itself, we need
-    to remove it beforehand during build to avoid a warning saying that the file was added multiple times.
-  -->
-  <Target Name="RemoveGeneratedFileBeforeScripty" BeforeTargets="EvaluateScriptyFiles">
-    <ItemGroup>
-      <Compile Remove="RequestExtensions.cs" />
-    </ItemGroup>
-  </Target>
 
 </Project>
