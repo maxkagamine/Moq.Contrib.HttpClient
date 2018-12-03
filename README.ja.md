@@ -2,7 +2,7 @@
 
 [![NuGet](https://img.shields.io/nuget/v/MaxKagamine.Moq.HttpClient.svg)](https://www.nuget.org/packages/MaxKagamine.Moq.HttpClient/) [![Travis](https://img.shields.io/travis/com/maxkagamine/Moq.HttpClient.svg)](https://travis-ci.com/maxkagamine/Moq.HttpClient)
 
-[English](README.md)
+[ブログ投稿](https://maxkagamine.jp/blog/moq-de-httpclient-to-ihttpclientfactory-o-mokkusuru-kantanna-houhou) &nbsp;&middot;&nbsp; [English](README.md)
 
 MoqでHttpClientとIHttpClientFactoryのテストダブルを作るため拡張メソッドのセットです
 
@@ -10,15 +10,15 @@ HttpClientを直にモックすることが難しいのは[よく知られてい
 
 - [インストール](#%E3%82%A4%E3%83%B3%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AB)
 - [API](#api)
-    - [リクエスト](#%E3%83%AA%E3%82%AF%E3%82%A8%E3%82%B9%E3%83%88)
-    - [レスポンス](#%E3%83%AC%E3%82%B9%E3%83%9D%E3%83%B3%E3%82%B9)
+  - [リクエスト](#%E3%83%AA%E3%82%AF%E3%82%A8%E3%82%B9%E3%83%88)
+  - [レスポンス](#%E3%83%AC%E3%82%B9%E3%83%9D%E3%83%B3%E3%82%B9)
 - [用例](#%E7%94%A8%E4%BE%8B)
-    - [一般的な使用法](#%E4%B8%80%E8%88%AC%E7%9A%84%E3%81%AA%E4%BD%BF%E7%94%A8%E6%B3%95)
-    - [ヘッダーとかJSONとかクエリパラメータでリクエストをマッチする](#%E3%83%98%E3%83%83%E3%83%80%E3%83%BC%E3%81%A8%E3%81%8Bjson%E3%81%A8%E3%81%8B%E3%82%AF%E3%82%A8%E3%83%AA%E3%83%91%E3%83%A9%E3%83%A1%E3%83%BC%E3%82%BF%E3%81%A7%E3%83%AA%E3%82%AF%E3%82%A8%E3%82%B9%E3%83%88%E3%82%92%E3%83%9E%E3%83%83%E3%83%81%E3%81%99%E3%82%8B)
-    - [リクエストのシークエンスをセットアップする](#%E3%83%AA%E3%82%AF%E3%82%A8%E3%82%B9%E3%83%88%E3%81%AE%E3%82%B7%E3%83%BC%E3%82%AF%E3%82%A8%E3%83%B3%E3%82%B9%E3%82%92%E3%82%BB%E3%83%83%E3%83%88%E3%82%A2%E3%83%83%E3%83%97%E3%81%99%E3%82%8B)
-    - [リクエストの本体に基づいてレスポンスを書く](#%E3%83%AA%E3%82%AF%E3%82%A8%E3%82%B9%E3%83%88%E3%81%AE%E6%9C%AC%E4%BD%93%E3%81%AB%E5%9F%BA%E3%81%A5%E3%81%84%E3%81%A6%E3%83%AC%E3%82%B9%E3%83%9D%E3%83%B3%E3%82%B9%E3%82%92%E6%9B%B8%E3%81%8F)
-    - [IHttpClientFactoryの使い方](#ihttpclientfactory%E3%81%AE%E4%BD%BF%E3%81%84%E6%96%B9)
-    - [完全なユニットテストの用例](#%E5%AE%8C%E5%85%A8%E3%81%AA%E3%83%A6%E3%83%8B%E3%83%83%E3%83%88%E3%83%86%E3%82%B9%E3%83%88%E3%81%AE%E7%94%A8%E4%BE%8B)
+  - [一般的な使用法](#%E4%B8%80%E8%88%AC%E7%9A%84%E3%81%AA%E4%BD%BF%E7%94%A8%E6%B3%95)
+  - [ヘッダーとかJSONとかクエリパラメータでリクエストをマッチする](#%E3%83%98%E3%83%83%E3%83%80%E3%83%BC%E3%81%A8%E3%81%8Bjson%E3%81%A8%E3%81%8B%E3%82%AF%E3%82%A8%E3%83%AA%E3%83%91%E3%83%A9%E3%83%A1%E3%83%BC%E3%82%BF%E3%81%A7%E3%83%AA%E3%82%AF%E3%82%A8%E3%82%B9%E3%83%88%E3%82%92%E3%83%9E%E3%83%83%E3%83%81%E3%81%99%E3%82%8B)
+  - [リクエストのシークエンスをセットアップする](#%E3%83%AA%E3%82%AF%E3%82%A8%E3%82%B9%E3%83%88%E3%81%AE%E3%82%B7%E3%83%BC%E3%82%AF%E3%82%A8%E3%83%B3%E3%82%B9%E3%82%92%E3%82%BB%E3%83%83%E3%83%88%E3%82%A2%E3%83%83%E3%83%97%E3%81%99%E3%82%8B)
+  - [リクエストの本体に基づいてレスポンスを書く](#%E3%83%AA%E3%82%AF%E3%82%A8%E3%82%B9%E3%83%88%E3%81%AE%E6%9C%AC%E4%BD%93%E3%81%AB%E5%9F%BA%E3%81%A5%E3%81%84%E3%81%A6%E3%83%AC%E3%82%B9%E3%83%9D%E3%83%B3%E3%82%B9%E3%82%92%E6%9B%B8%E3%81%8F)
+  - [IHttpClientFactoryの使い方](#ihttpclientfactory%E3%81%AE%E4%BD%BF%E3%81%84%E6%96%B9)
+  - [完全なユニットテストの用例](#%E5%AE%8C%E5%85%A8%E3%81%AA%E3%83%A6%E3%83%8B%E3%83%83%E3%83%88%E3%83%86%E3%82%B9%E3%83%88%E3%81%AE%E7%94%A8%E4%BE%8B)
 - [ライセンス / 寄付](#%E3%83%A9%E3%82%A4%E3%82%BB%E3%83%B3%E3%82%B9--%E5%AF%84%E4%BB%98)
 
 ## インストール
@@ -40,7 +40,7 @@ HttpClientを直にモックすることが難しいのは[よく知られてい
 
 ### リクエスト
 
-すべとのSetupとVerifyのヘルパーはここで略した同じヘルパーがあります：
+すべとのSetupとVerifyのヘルパーはここで略した同じオーバーロードがあります：
 
 ```csharp
 SetupAnyRequest()
@@ -53,7 +53,7 @@ SetupRequest(HttpMethod method, string|Uri requestUrl[, Predicate<HttpRequestMes
 
 ### レスポンス
 
-レスポンスのヘルパーはStringContent、ByteArrayContent、StreamContentかステータスコードだけを送ることを簡単になります。すべてのオーバーロードはレスポンスをもっとコンフィグする（つまり、ヘッダーを設定する）ためActionを受け取ります
+レスポンスのヘルパーはStringContent、ByteArrayContent、StreamContentかステータスコードだけを送ることを簡単にします。すべてのオーバーロードはレスポンスをもっとコンフィグする（つまり、ヘッダーを設定する）ためActionを受け取ります
 
 ```csharp
 ReturnsResponse(HttpStatusCode statusCode[, HttpContent content], Action<HttpResponseMessage> configure = null)
@@ -103,13 +103,13 @@ handler
     {
         // このセットアップは予期された (expected) IDがあるリクエストのみをマッチする
         var json = await request.Content.ReadAsStringAsync();
-        var model = JsonConvert.DeserializeObject<Model>()
+        var model = JsonConvert.DeserializeObject<Model>();
         return model.Id == expected.Id;
     })
     .ReturnsResponse(HttpStatusCode.Created);
 
 // 他に関係なく特定のクエリパラメータをチェックするためも使えます
-handler.SetupRequest(r => ((Url) r.RequestUri).QueryParams["foo"].Equals("bar"))
+handler.SetupRequest(r => ((Url) r.RequestUri).QueryParams["hoge"].Equals("piyo"))
     .ReturnsResponse("stuff");
 ```
 
@@ -144,9 +144,9 @@ var body = await response.Content.ReadAsStringAsync(); // こんにちは、世�
 
 ### IHttpClientFactoryの使い方
 
-HttpClientが`IDisposable`だから`using`の中でよく見られますが、これは[実は正しくないしアプリがソケットを平らげているのにつながります](https://aspnetmonsters.com/2016/08/2016-08-27-httpclientwrong/)。普通の忠告はアプリケーションのライフタイムの全期間staticかsingletonなHttpClientを保つことですがこらはDNSの変更に反応しないというマイナスがあります
+HttpClientが`IDisposable`だから`using`の中でよく見られますが、これは[実は正しくないしアプリがソケットを平らげているのにつながります](https://aspnetmonsters.com/2016/08/2016-08-27-httpclientwrong/)。普通の忠告はアプリケーションのライフタイムの全期間staticかsingletonなHttpClientを保つことですがこれはDNSの変更に反応しないというマイナスがあります
 
-ASP.NET Coreは「HttpClientのライフタイムを手動で管理するときに発生する一般的なDNSの問題を回避のために基礎となるHttpClientMessageHandlerインスタンスのプーリングとライフタイムを管理する」という新しい[IHttpClientFactory](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/http-requests)を導入します。ボーナスとして、これはHttpClientのよく知られていないフィーチャーをもっととっつきやすいにする：ミドルウェアをプラグインする能力（例えば、再試行と失敗を自動的に処理するために[Polly](https://github.com/App-vNext/Polly#polly)を使う）
+ASP.NET Coreは「HttpClientのライフタイムを手動で管理するときに発生する一般的なDNSの問題を回避のために基礎となるHttpClientMessageHandlerインスタンスのプーリングとライフタイムを管理する」という新しい[IHttpClientFactory](https://docs.microsoft.com/ja-jp/aspnet/core/fundamentals/http-requests)を導入します。ボーナスとして、これはHttpClientのあまり知られていないフィーチャーをもっととっつきやすいにする：ミドルウェアをプラグインする能力（例えば、再試行と失敗を自動的に処理するために[Polly](https://github.com/App-vNext/Polly#polly)を使う）
 
 利用法次第では、コンストラクタが単にIHttpClientFactoryによって注入したHttpClientを受け取るかもしれない。コンストラクタはファクトリーそのものを受け取れば、これは同じようにモックされる：
 
@@ -180,7 +180,7 @@ MITライセンス
 
 決して必要ではないけれど、もしこれが役立つならば、寄付がすごく感謝されます：
 
-**[PayPal.me](https://paypal.me/maxkagamine)**
+[![PayPal.me](https://www.paypalobjects.com/digitalassets/c/website/marketing/apac/C2/logos-buttons/optimize/34_Blue_PayPal_Pill_Button.png)](https://www.paypal.me/maxkagamine/0jpy?country.x=JP&locale.x=ja_JP)
 
 <p>
 <details>
@@ -191,6 +191,8 @@ MITライセンス
 BTC  32SEpPUowijZWET5tbErgskNSBkjSmLwmo
 BCH  1DsWr5aoyQgcD6vYCTSViVmUcRSiYPPvPw
 DOGE DAEiyJP7F7YqZN9GJ12Z2RhfkPahyyN1DY
+
+ありがとうございます！
 ```
 </details>
 </p>

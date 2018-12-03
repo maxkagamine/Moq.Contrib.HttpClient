@@ -2,7 +2,7 @@
 
 [![NuGet](https://img.shields.io/nuget/v/MaxKagamine.Moq.HttpClient.svg)](https://www.nuget.org/packages/MaxKagamine.Moq.HttpClient/) [![Travis](https://img.shields.io/travis/com/maxkagamine/Moq.HttpClient.svg)](https://travis-ci.com/maxkagamine/Moq.HttpClient)
 
-[日本語](README.ja.md)
+[Blog post](https://maxkagamine.com/blog/mocking-httpclient-ihttpclientfactory-with-moq-the-easy-way) &nbsp;&middot;&nbsp; [日本語](README.ja.md)
 
 A set of extension methods for mocking HttpClient and IHttpClientFactory with Moq.
 
@@ -10,15 +10,15 @@ Mocking HttpClient directly is [notoriously difficult](https://github.com/dotnet
 
 - [Install](#install)
 - [API](#api)
-    - [Request](#request)
-    - [Response](#response)
+  - [Request](#request)
+  - [Response](#response)
 - [Examples](#examples)
-    - [General usage](#general-usage)
-    - [Matching requests by headers, JSON, query params, etc.](#matching-requests-by-headers-json-query-params-etc)
-    - [Setting up a sequence of requests](#setting-up-a-sequence-of-requests)
-    - [Composing responses based on the request body](#composing-responses-based-on-the-request-body)
-    - [Using IHttpClientFactory](#using-ihttpclientfactory)
-    - [Complete unit test examples](#complete-unit-test-examples)
+  - [General usage](#general-usage)
+  - [Matching requests by headers, JSON, query params, etc.](#matching-requests-by-headers-json-query-params-etc)
+  - [Setting up a sequence of requests](#setting-up-a-sequence-of-requests)
+  - [Composing responses based on the request body](#composing-responses-based-on-the-request-body)
+  - [Using IHttpClientFactory](#using-ihttpclientfactory)
+  - [Complete unit test examples](#complete-unit-test-examples)
 - [License / Donate](#license--donate)
 
 ## Install
@@ -103,7 +103,7 @@ handler
     {
         // This setup will only match calls with the expected id
         var json = await request.Content.ReadAsStringAsync();
-        var model = JsonConvert.DeserializeObject<Model>()
+        var model = JsonConvert.DeserializeObject<Model>();
         return model.Id == expected.Id;
     })
     .ReturnsResponse(HttpStatusCode.Created);
@@ -178,9 +178,9 @@ Though it may be a faux pas to point to the unit tests as documentation, in this
 
 MIT license.
 
-Although by no means necessary, if you find this useful, donations are greatly appreciated:
+If you found this useful, please consider buying me a ~~coffee~~ cup of tea!
 
-**[PayPal.me](https://paypal.me/maxkagamine)**
+[![PayPal.me](https://www.paypalobjects.com/digitalassets/c/website/marketing/apac/C2/logos-buttons/optimize/34_Blue_PayPal_Pill_Button.png)](https://paypal.me/maxkagamine)
 
 <p>
 <details>
@@ -191,6 +191,8 @@ Although by no means necessary, if you find this useful, donations are greatly a
 BTC  32SEpPUowijZWET5tbErgskNSBkjSmLwmo
 BCH  1DsWr5aoyQgcD6vYCTSViVmUcRSiYPPvPw
 DOGE DAEiyJP7F7YqZN9GJ12Z2RhfkPahyyN1DY
+
+Thank you! I wish you a safe journey to the moon :)
 ```
 </details>
 </p>
