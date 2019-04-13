@@ -7,12 +7,12 @@
     <Authors>Max Kagamine</Authors>
     <Copyright>Copyright © 2018 Max Kagamine</Copyright>
     <Description>A set of extension methods for mocking HttpClient and IHttpClientFactory with Moq.</Description>
-    <PackageLicenseUrl>https://github.com/maxkagamine/Moq.Contrib.HttpClient/blob/master/LICENSE.txt</PackageLicenseUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/maxkagamine/Moq.Contrib.HttpClient</PackageProjectUrl>
     <PackageTags>moq http httpclient mock mocking test testing</PackageTags>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/maxkagamine/Moq.Contrib.HttpClient</RepositoryUrl>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
