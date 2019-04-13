@@ -2,4 +2,4 @@ language: csharp
 mono: none
 dotnet: 2.1.500
 script:
-  - dotnet test test/MaxKagamine.Moq.HttpClient.Test
+  - dotnet test test/Moq.Contrib.HttpClient.Test

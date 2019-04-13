@@ -10,7 +10,7 @@ using FluentAssertions;
 using Moq;
 using Xunit;
 
-namespace MaxKagamine.Moq.HttpClient.Test
+namespace Moq.Contrib.HttpClient.Test
 {
     public class ResponseExtensionsTests
     {

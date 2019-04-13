@@ -9,7 +9,7 @@ using Moq.Language;
 using Moq.Language.Flow;
 using Moq.Protected;
 
-namespace MaxKagamine.Moq.HttpClient
+namespace Moq.Contrib.HttpClient
 {
     using System.Net.Http;
 

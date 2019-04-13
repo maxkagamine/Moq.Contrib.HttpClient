@@ -1,6 +1,6 @@
-# Moq.HttpClient
+# Moq.Contrib.HttpClient
 
-[![NuGet](https://img.shields.io/nuget/v/MaxKagamine.Moq.HttpClient.svg)](https://www.nuget.org/packages/MaxKagamine.Moq.HttpClient/) [![Travis](https://img.shields.io/travis/com/maxkagamine/Moq.HttpClient.svg)](https://travis-ci.com/maxkagamine/Moq.HttpClient)
+[![NuGet](https://img.shields.io/nuget/v/Moq.Contrib.HttpClient.svg)](https://www.nuget.org/packages/Moq.Contrib.HttpClient/) [![Travis](https://img.shields.io/travis/com/maxkagamine/Moq.Contrib.HttpClient.svg)](https://travis-ci.com/maxkagamine/Moq.Contrib.HttpClient)
 
 [Blog post](https://maxkagamine.com/blog/mocking-httpclient-ihttpclientfactory-with-moq-the-easy-way) &nbsp;&middot;&nbsp; [日本語](README.ja.md)
 
@@ -23,9 +23,9 @@ Mocking HttpClient directly is [notoriously difficult](https://github.com/dotnet
 
 ## Install
 
-`Install-Package MaxKagamine.Moq.HttpClient`
+`Install-Package Moq.Contrib.HttpClient`
 
-or `dotnet add package MaxKagamine.Moq.HttpClient`
+or `dotnet add package Moq.Contrib.HttpClient`
 
 ## API
 
@@ -113,7 +113,7 @@ handler.SetupRequest(r => ((Url) r.RequestUri).QueryParams["foo"].Equals("bar"))
     .ReturnsResponse("stuff");
 ```
 
-The last example uses [Flurl](https://flurl.io/docs/fluent-url/), a fluent URL builder, to assist in checking the query string. This can also make constructing a URL easier, for instance if we wanted to match an exact URL and query string. See the [request extensions tests](test/MaxKagamine.Moq.HttpClient.Test/RequestExtensionsTests.cs) for an example.
+The last example uses [Flurl](https://flurl.io/docs/fluent-url/), a fluent URL builder, to assist in checking the query string. This can also make constructing a URL easier, for instance if we wanted to match an exact URL and query string. See the [request extensions tests](test/Moq.Contrib.HttpClient.Test/RequestExtensionsTests.cs) for an example.
 
 ### Setting up a sequence of requests
 
@@ -124,7 +124,7 @@ Moq has two types of sequences:
 
 The latter can be useful for cases where separate requests independent of each other must be made in a certain order; their setups can be defined in a sequence such that one must match before the other. This is similar to other testing libraries that work by queueing responses.
 
-See the [sequence extensions tests](test/MaxKagamine.Moq.HttpClient.Test/SequenceExtensionsTests.cs) for examples of each.
+See the [sequence extensions tests](test/Moq.Contrib.HttpClient.Test/SequenceExtensionsTests.cs) for examples of each.
 
 ### Composing responses based on the request body
 
@@ -170,9 +170,9 @@ The factory can then be passed into the class or [injected via AutoMocker](https
 
 Though it may be a faux pas to point to the unit tests as documentation, in this case the library is specifically for testing, and so they were written with this in mind. Thus, for some more complete working examples (with comments), please see here:
 
-- **[Request extensions tests](test/MaxKagamine.Moq.HttpClient.Test/RequestExtensionsTests.cs)** &mdash; these strictly cover the Setup & Verify helpers
-- **[Response extensions tests](test/MaxKagamine.Moq.HttpClient.Test/ResponseExtensionsTests.cs)** &mdash; these focus on the ReturnsResponse helpers
-- **[Sequence extensions tests](test/MaxKagamine.Moq.HttpClient.Test/SequenceExtensionsTests.cs)** &mdash; these demonstrate mocking sequences, as mentioned above
+- **[Request extensions tests](test/Moq.Contrib.HttpClient.Test/RequestExtensionsTests.cs)** &mdash; these strictly cover the Setup & Verify helpers
+- **[Response extensions tests](test/Moq.Contrib.HttpClient.Test/ResponseExtensionsTests.cs)** &mdash; these focus on the ReturnsResponse helpers
+- **[Sequence extensions tests](test/Moq.Contrib.HttpClient.Test/SequenceExtensionsTests.cs)** &mdash; these demonstrate mocking sequences, as mentioned above
 
 ## License / Donate
 

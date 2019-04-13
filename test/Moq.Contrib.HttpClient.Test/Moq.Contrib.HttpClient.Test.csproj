@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\MaxKagamine.Moq.HttpClient\MaxKagamine.Moq.HttpClient.csproj" />
+    <ProjectReference Include="..\..\src\Moq.Contrib.HttpClient\Moq.Contrib.HttpClient.csproj" />
   </ItemGroup>
 
 </Project>

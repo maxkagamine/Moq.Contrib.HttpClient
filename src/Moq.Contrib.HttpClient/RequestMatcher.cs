@@ -3,7 +3,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Moq;
 
-namespace MaxKagamine.Moq.HttpClient
+namespace Moq.Contrib.HttpClient
 {
     /// <summary>
     /// Custom Moq matchers for <see cref="HttpRequestMessage" /> using <see cref="Match.Create{T}(Predicate{T})" />.

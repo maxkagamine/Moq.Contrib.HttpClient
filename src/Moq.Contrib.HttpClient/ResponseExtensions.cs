@@ -9,7 +9,7 @@ using Moq;
 using Moq.Language;
 using Moq.Language.Flow;
 
-namespace MaxKagamine.Moq.HttpClient
+namespace Moq.Contrib.HttpClient
 {
     public static partial class MockHttpMessageHandlerExtensions
     {

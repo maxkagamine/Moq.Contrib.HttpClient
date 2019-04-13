@@ -7,9 +7,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{C40CC895-DEA
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{8AD2CDD5-EF40-4EA0-BD3A-98A074EF09B3}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MaxKagamine.Moq.HttpClient", "src\MaxKagamine.Moq.HttpClient\MaxKagamine.Moq.HttpClient.csproj", "{12F6B27E-0A30-4105-80FF-B5C9B5D69C6B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Moq.Contrib.HttpClient", "src\Moq.Contrib.HttpClient\Moq.Contrib.HttpClient.csproj", "{12F6B27E-0A30-4105-80FF-B5C9B5D69C6B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaxKagamine.Moq.HttpClient.Test", "test\MaxKagamine.Moq.HttpClient.Test\MaxKagamine.Moq.HttpClient.Test.csproj", "{68DA515D-A6F6-4C6B-A750-8456498868A0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Moq.Contrib.HttpClient.Test", "test\Moq.Contrib.HttpClient.Test\Moq.Contrib.HttpClient.Test.csproj", "{68DA515D-A6F6-4C6B-A750-8456498868A0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

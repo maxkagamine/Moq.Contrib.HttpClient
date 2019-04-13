@@ -1,6 +1,6 @@
-# Moq.HttpClient
+# Moq.Contrib.HttpClient
 
-[![NuGet](https://img.shields.io/nuget/v/MaxKagamine.Moq.HttpClient.svg)](https://www.nuget.org/packages/MaxKagamine.Moq.HttpClient/) [![Travis](https://img.shields.io/travis/com/maxkagamine/Moq.HttpClient.svg)](https://travis-ci.com/maxkagamine/Moq.HttpClient)
+[![NuGet](https://img.shields.io/nuget/v/Moq.Contrib.HttpClient.svg)](https://www.nuget.org/packages/Moq.Contrib.HttpClient/) [![Travis](https://img.shields.io/travis/com/maxkagamine/Moq.Contrib.HttpClient.svg)](https://travis-ci.com/maxkagamine/Moq.Contrib.HttpClient)
 
 [ブログ投稿](https://maxkagamine.jp/blog/moq-de-httpclient-to-ihttpclientfactory-o-mokkusuru-kantanna-houhou) &nbsp;&middot;&nbsp; [English](README.md)
 
@@ -23,9 +23,9 @@ HttpClientを直にモックすることが難しいのは[よく知られてい
 
 ## インストール
 
-`Install-Package MaxKagamine.Moq.HttpClient`
+`Install-Package Moq.Contrib.HttpClient`
 
-または `dotnet add package MaxKagamine.Moq.HttpClient`
+または `dotnet add package Moq.Contrib.HttpClient`
 
 ## API
 
@@ -113,7 +113,7 @@ handler.SetupRequest(r => ((Url) r.RequestUri).QueryParams["hoge"].Equals("piyo"
     .ReturnsResponse("stuff");
 ```
 
-最後の例えはクエリ文字列をチェックするのを手伝うために[Flurl](https://flurl.io/docs/fluent-url/)というフルーエントURLビルダーを使います。これはURLを作るも簡単にすることができます、例えば精密なURLとクエリ文字列をマッチしたかった。用例は[リクエスト拡張のテスト](test/MaxKagamine.Moq.HttpClient.Test/RequestExtensionsTests.cs)を見てください
+最後の例えはクエリ文字列をチェックするのを手伝うために[Flurl](https://flurl.io/docs/fluent-url/)というフルーエントURLビルダーを使います。これはURLを作るも簡単にすることができます、例えば精密なURLとクエリ文字列をマッチしたかった。用例は[リクエスト拡張のテスト](test/Moq.Contrib.HttpClient.Test/RequestExtensionsTests.cs)を見てください
 
 ### リクエストのシークエンスをセットアップする
 
@@ -124,7 +124,7 @@ Moqは2つシークエンスのタイプがあります：
 
 互いに独立しているリクエストが特定の順序にマッチするの必要がある場合は後者が便利です。セットアップは一方が他方の前に必ずマッチするためにシークエンスで定義される。これはレスポンスをキューに入れることによって動作する他のライブラリと似ています
 
-両方の用例は[シークエンス拡張のテスト](test/MaxKagamine.Moq.HttpClient.Test/SequenceExtensionsTests.cs)を見てください
+両方の用例は[シークエンス拡張のテスト](test/Moq.Contrib.HttpClient.Test/SequenceExtensionsTests.cs)を見てください
 
 ### リクエストの本体に基づいてレスポンスを書く
 
@@ -170,9 +170,9 @@ Mock.Get(factory).Setup(x => x.CreateClient("api"))
 
 文書化としてユニットテストに向けるのが過ちかもしれないけど、この場合はこのライブラリがテストのためだしテストがこれを念頭に置いて書かれたから、もっと完全な用例（コメントと）は、こちら見てください：
 
-- **[リクエスト拡張のテスト](test/MaxKagamine.Moq.HttpClient.Test/RequestExtensionsTests.cs)** &mdash; これらはSetupとVerifyのヘルパーのみを使います
-- **[レスポンス拡張のテスト](test/MaxKagamine.Moq.HttpClient.Test/ResponseExtensionsTests.cs)** &mdash; これらはReturnsResponseヘルパーに焦点をあてます
-- **[シークエンス拡張のテスト](test/MaxKagamine.Moq.HttpClient.Test/SequenceExtensionsTests.cs)** &mdash; これらはシークエンスをモックすることを実証します
+- **[リクエスト拡張のテスト](test/Moq.Contrib.HttpClient.Test/RequestExtensionsTests.cs)** &mdash; これらはSetupとVerifyのヘルパーのみを使います
+- **[レスポンス拡張のテスト](test/Moq.Contrib.HttpClient.Test/ResponseExtensionsTests.cs)** &mdash; これらはReturnsResponseヘルパーに焦点をあてます
+- **[シークエンス拡張のテスト](test/Moq.Contrib.HttpClient.Test/SequenceExtensionsTests.cs)** &mdash; これらはシークエンスをモックすることを実証します
 
 ## ライセンス / 寄付
 
