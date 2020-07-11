@@ -3,7 +3,6 @@ using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using FluentAssertions;
-using Moq;
 using Polly;
 using Xunit;
 
@@ -66,16 +65,13 @@ namespace Moq.Contrib.HttpClient.Test
         [InlineData(false)]
         public async Task CanDefineMultipleSetupsToMatchInSequence(bool doItCorrectly)
         {
-            // For a case where separate requests independent of each other must be made
-            // in a certain order, their setups can be defined in a sequence such that
-            // one must match before the other. (An alternative approach would be to
-            // inspect the Invocations list after the fact.)
+            // For a case where separate requests independent of each other must be made in a certain order, their
+            // setups can be defined in a sequence such that one must match before the other. (An alternative approach
+            // would be to inspect the Invocations list after the fact.)
 
-            // For example, when dialing the Stargate, Walter likes to say "chevron one
-            // encoded" and so on up to the seventh, at which point he changes things up
-            // and says "chevron seven locked". Therefore we must be sure to only "encode"
-            // six times and then finally "lock" only at the end of the sequence.
-            //    ... https://youtu.be/HudXqJm9AX8
+            // For example, when dialing the Stargate, Walter likes to say "chevron one encoded" and so on up to the
+            // seventh, at which point he changes things up and says "chevron seven locked". Therefore we must be sure
+            // to only "encode" six times and then finally "lock" only at the end of the sequence.
 
             var encodeUrl = new Uri(client.BaseAddress, "chevrons/encode");
             var lockUrl = new Uri(client.BaseAddress, "chevrons/lock");

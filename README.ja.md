@@ -1,25 +1,32 @@
 # Moq.Contrib.HttpClient
 
-[![NuGet](https://img.shields.io/nuget/v/Moq.Contrib.HttpClient.svg)](https://www.nuget.org/packages/Moq.Contrib.HttpClient/) [![Travis](https://img.shields.io/travis/com/maxkagamine/Moq.Contrib.HttpClient.svg)](https://travis-ci.com/maxkagamine/Moq.Contrib.HttpClient)
+[![NuGet][nuget badge]][nuget] [![ci build badge]][ci build]
 
-[ブログ投稿](https://maxkagamine.jp/blog/moq-de-httpclient-to-ihttpclientfactory-o-mokkusuru-kantanna-houhou) &nbsp;&middot;&nbsp; [English](README.md)
+[nuget badge]: https://img.shields.io/nuget/dt/Moq.Contrib.HttpClient?label=Downloads&logo=nuget&logoColor=959da5&labelColor=2d343a
+[ci build badge]: https://github.com/maxkagamine/Moq.Contrib.HttpClient/workflows/CI%20build/badge.svg?branch=master&event=push
+[nuget]: https://www.nuget.org/packages/Moq.Contrib.HttpClient/
+[ci build]: https://github.com/maxkagamine/Moq.Contrib.HttpClient/actions?query=workflow%3A%22CI+build%22
 
-MoqでHttpClientとIHttpClientFactoryのテストダブルを作るため拡張メソッドのセットです
+[ブログ投稿](https://kagamine.dev/ja/httpclient-mock-kantan-na-houhou/) &nbsp;&middot;&nbsp; [English](README.md)
 
-HttpClientを直にモックすることが難しいのは[よく知られています](https://github.com/dotnet/corefx/issues/1624)。普通の仕方はモックできられる何らかのラッパーを作るかHttpClientのために特別にテスティングライブラリを使うことですけど、前者はよく望ましくなくて、後者はHTTPリクエストだけのために別のモックシステムに切り替えることが必要で、あのシステムの方が柔軟ではないか他のモックと一緒に不味そうですかもしれない。この拡張ではたくさんのボイラプレートなしで他のすべてと同じようにMoqでHttpClientをモックできます
+MoqでHttpClientとIHttpClientFactoryのテストダブルを作るための拡張メソッドのセットです
 
-- [インストール](#%E3%82%A4%E3%83%B3%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AB)
+HttpClientを直接モックするのは難しいことは[よく知られている](https://github.com/dotnet/corefx/issues/1624)。一般の解決法は何かのラッパーを作って代わりにそれをモックすること（コードを乱雑しても）またはHttpClient固有のテスティングライブラリを使うこと（しかしHTTP呼び出しのために別のモックシステムに切り替える必要があるし他のモックとうまく合わないかも）
+
+この拡張メソッドはHTTPリクエストをモックすることをサービスメソッドをモックするように簡単にします
+
+- [インストール](#インストール)
 - [API](#api)
-  - [リクエスト](#%E3%83%AA%E3%82%AF%E3%82%A8%E3%82%B9%E3%83%88)
-  - [レスポンス](#%E3%83%AC%E3%82%B9%E3%83%9D%E3%83%B3%E3%82%B9)
-- [用例](#%E7%94%A8%E4%BE%8B)
-  - [一般的な使用法](#%E4%B8%80%E8%88%AC%E7%9A%84%E3%81%AA%E4%BD%BF%E7%94%A8%E6%B3%95)
-  - [ヘッダーとかJSONとかクエリパラメータでリクエストをマッチする](#%E3%83%98%E3%83%83%E3%83%80%E3%83%BC%E3%81%A8%E3%81%8Bjson%E3%81%A8%E3%81%8B%E3%82%AF%E3%82%A8%E3%83%AA%E3%83%91%E3%83%A9%E3%83%A1%E3%83%BC%E3%82%BF%E3%81%A7%E3%83%AA%E3%82%AF%E3%82%A8%E3%82%B9%E3%83%88%E3%82%92%E3%83%9E%E3%83%83%E3%83%81%E3%81%99%E3%82%8B)
-  - [リクエストのシークエンスをセットアップする](#%E3%83%AA%E3%82%AF%E3%82%A8%E3%82%B9%E3%83%88%E3%81%AE%E3%82%B7%E3%83%BC%E3%82%AF%E3%82%A8%E3%83%B3%E3%82%B9%E3%82%92%E3%82%BB%E3%83%83%E3%83%88%E3%82%A2%E3%83%83%E3%83%97%E3%81%99%E3%82%8B)
-  - [リクエストの本体に基づいてレスポンスを書く](#%E3%83%AA%E3%82%AF%E3%82%A8%E3%82%B9%E3%83%88%E3%81%AE%E6%9C%AC%E4%BD%93%E3%81%AB%E5%9F%BA%E3%81%A5%E3%81%84%E3%81%A6%E3%83%AC%E3%82%B9%E3%83%9D%E3%83%B3%E3%82%B9%E3%82%92%E6%9B%B8%E3%81%8F)
-  - [IHttpClientFactoryの使い方](#ihttpclientfactory%E3%81%AE%E4%BD%BF%E3%81%84%E6%96%B9)
-  - [完全なユニットテストの用例](#%E5%AE%8C%E5%85%A8%E3%81%AA%E3%83%A6%E3%83%8B%E3%83%83%E3%83%88%E3%83%86%E3%82%B9%E3%83%88%E3%81%AE%E7%94%A8%E4%BE%8B)
-- [ライセンス / 寄付](#%E3%83%A9%E3%82%A4%E3%82%BB%E3%83%B3%E3%82%B9--%E5%AF%84%E4%BB%98)
+  - [リクエスト](#リクエスト)
+  - [レスポンス](#レスポンス)
+- [用例](#用例)
+  - [一般的な使用法](#一般的な使用法)
+  - [クエリパラメータやヘッダーやJSONの本体でリクエストをマッチする](#クエリパラメータやヘッダーやjsonの本体でリクエストをマッチする)
+  - [リクエストのシークエンスをセットアップする](#リクエストのシークエンスをセットアップする)
+  - [リクエストの本体に基づいてレスポンスを書く](#リクエストの本体に基づいてレスポンスを書く)
+  - [IHttpClientFactoryの使い方](#ihttpclientfactoryの使い方)
+  - [完全なユニットテストの用例](#完全なユニットテストの用例)
+- [ライセンス](#ライセンス)
 
 ## インストール
 
@@ -29,18 +36,16 @@ HttpClientを直にモックすることが難しいのは[よく知られてい
 
 ## API
 
-このライブラリは普通のMoqメソッドのリクエストとレスポンス版を追加します：
+Moqの普通のメソッドにリクエスト版とレスポンス版が追加される：
 
 - **Setup** → SetupRequest, SetupAnyRequest
 - **SetupSequence** → SetupRequestSequence, SetupAnyRequestSequence
 - **Verify** → VerifyRequest, VerifyAnyRequest
 - **Returns(Async)** → ReturnsResponse
 
-`InSequence().Setup()` もサポートされます
-
 ### リクエスト
 
-すべとのSetupとVerifyのヘルパーはここで略した同じオーバーロードがあります：
+リクエストのヘルパーはすべて同じオーバーロードがある：
 
 ```csharp
 SetupAnyRequest()
@@ -49,17 +54,19 @@ SetupRequest(string|Uri requestUrl[, Predicate<HttpRequestMessage> match])
 SetupRequest(HttpMethod method, string|Uri requestUrl[, Predicate<HttpRequestMessage> match])
 ```
 
-その`match`という述語を使うともっと複雑にリクエスト（とヘッダー）をマッチすることができます。本体を調べるためにasyncになれます
+`requestUrl`は正確なURLをマッチして、`match`という述語はクエリパラメータやヘッダーでマッチできるしリクエストの本体をチェックするためにasyncになれる
 
 ### レスポンス
 
-レスポンスのヘルパーはStringContent、ByteArrayContent、StreamContentかステータスコードだけを送ることを簡単にします。すべてのオーバーロードはレスポンスをもっとコンフィグする（つまり、ヘッダーを設定する）ためActionを受け取ります
+レスポンスのヘルパーはStringContent、ByteArrayContent、StreamContent、それともステータスコードだけを送ることを簡単にする：
 
 ```csharp
 ReturnsResponse(HttpStatusCode statusCode[, HttpContent content], Action<HttpResponseMessage> configure = null)
 ReturnsResponse([HttpStatusCode statusCode, ]string content, string mediaType = null, Encoding encoding = null, Action<HttpResponseMessage> configure = null))
 ReturnsResponse([HttpStatusCode statusCode, ]byte[]|Stream content, string mediaType = null, Action<HttpResponseMessage> configure = null)
 ```
+
+`statusCode`が省略されると200 OKにディフォルトする。`configure`というアクションがレスポンスのヘッダーを設定するように使える
 
 ## 用例
 
@@ -78,26 +85,26 @@ handler.SetupAnyRequest()
 handler.SetupRequest(HttpMethod.Get, "https://example.com/api/stuff")
     .ReturnsResponse(JsonConvert.SerializeObject(model), "application/json");
 
-// 任意なconfigureアクションでレスポンスにもっとヘッダーを設定する
+// 任意なconfigureアクションでレスポンスにもっとのヘッダーを設定する
 handler.SetupRequest("https://example.com/api/stuff")
     .ReturnsResponse(bytes, configure: response =>
     {
         response.Content.Headers.LastModified = new DateTime(2018, 3, 9);
     })
-    .Verifiable(); // 当然Moqのメソッドも使えます
+    .Verifiable(); // もちろん、Moqのメソッドも使える
 
-// Setupヘッダーと同じようVerifyメソッドが備えられる
+// SetupヘルパーのようなVerifyメソッドがある
 handler.VerifyAnyRequest(Times.Exactly(3));
 ```
 
-### ヘッダーとかJSONとかクエリパラメータでリクエストをマッチする
+### クエリパラメータやヘッダーやJSONの本体でリクエストをマッチする
 
 ```csharp
-// リクエストのヘルパーはもっと複雑にマッチするために述語を受け取ります
+// リクエストのヘルパーはもっと複雑にマッチするために述語を受け取る
 handler.SetupRequest(r => r.Headers.Authorization?.Parameter != authToken)
     .ReturnsResponse(HttpStatusCode.Unauthorized);
 
-// これは本体を調べるためにasyncにもなれます
+// 述語が本体をチェックするためにasyncにもなれる
 handler
     .SetupRequest(HttpMethod.Post, url, async request =>
     {
@@ -108,35 +115,39 @@ handler
     })
     .ReturnsResponse(HttpStatusCode.Created);
 
-// 他に関係なく特定のクエリパラメータをチェックするためも使えます
-handler.SetupRequest(r => ((Url) r.RequestUri).QueryParams["hoge"].Equals("piyo"))
+// とくにはクエリパラメータがあるURLをマッチするために便利です
+handler.SetupRequest(r =>
+{
+    Url url = r.RequestUri;
+    return url.Path == baseUrl.AppendPathSegment("endpoint") &&
+        url.QueryParams["hoge"].Equals("piyo");
+})
     .ReturnsResponse("stuff");
 ```
 
-最後の例えはクエリ文字列をチェックするのを手伝うために[Flurl](https://flurl.io/docs/fluent-url/)というフルーエントURLビルダーを使います。これはURLを作るも簡単にすることができます、例えば精密なURLとクエリ文字列をマッチしたかった。用例は[リクエスト拡張のテスト](test/Moq.Contrib.HttpClient.Test/RequestExtensionsTests.cs)を見てください
+最後の例えはクエリ文字列をチェックするのを手伝うために[Flurl](https://flurl.io/docs/fluent-url/)というURLビルダーのライブラリを使う
 
 ### リクエストのシークエンスをセットアップする
 
-Moqは2つシークエンスのタイプがあります：
+Moqは2つシークエンスのタイプがある：
 
 1. `SetupSequence()` は順に値を返す一つセットアップを作る
 2. `InSequence().Setup()` は必ず順にマッチするのために`When()`条件で複数のセットアップを作る
 
-互いに独立しているリクエストが特定の順序にマッチするの必要がある場合は後者が便利です。セットアップは一方が他方の前に必ずマッチするためにシークエンスで定義される。これはレスポンスをキューに入れることによって動作する他のライブラリと似ています
+ほとんどの場合はこれが必要がないし普通のセットアップの方がいいとを注意してください。それでも互いに独立しているリクエストが特定の順序にマッチするの必要がある場合は後者が便利です
 
 両方の用例は[シークエンス拡張のテスト](test/Moq.Contrib.HttpClient.Test/SequenceExtensionsTests.cs)を見てください
 
 ### リクエストの本体に基づいてレスポンスを書く
 
-まだMoqだからもっと複雑のレスポンスのためにリクエストのヘルパーと一緒に普通のMoqメソッドを使えます：
+Moqなので、もっと複雑のレスポンスのためには普通のMoqのメソッドがリクエストのヘルパーと一緒に使用できる：
 
 ```csharp
 handler.SetupRequest("https://example.com/hello")
-    .Returns(async (HttpRequestMessage request, CancellationToken cancellationToken) =>
-        new HttpResponseMessage()
-        {
-            Content = new StringContent($"こんにちは、{await request.Content.ReadAsStringAsync()}")
-        });
+    .Returns(async (HttpRequestMessage request, CancellationToken _) => new HttpResponseMessage()
+    {
+        Content = new StringContent($"こんにちは、{await request.Content.ReadAsStringAsync()}")
+    });
 
 var response = await client.PostAsync("https://example.com/hello", new StringContent("世界"));
 var body = await response.Content.ReadAsStringAsync(); // こんにちは、世界
@@ -144,17 +155,23 @@ var body = await response.Content.ReadAsStringAsync(); // こんにちは、世�
 
 ### IHttpClientFactoryの使い方
 
-HttpClientが`IDisposable`だから`using`の中でよく見られますが、これは[実は正しくないしアプリがソケットを平らげているのにつながります](https://aspnetmonsters.com/2016/08/2016-08-27-httpclientwrong/)。普通の忠告はアプリケーションのライフタイムの全期間staticかsingletonなHttpClientを保つことですがこれはDNSの変更に反応しないというマイナスがあります
+HttpClientはIDisposableなので`using`中によく入れられてしまう。でも直感に反して、これは間違うし、[ソケットを使い果たしていることにつながる可能性があるんです](https://aspnetmonsters.com/2016/08/2016-08-27-httpclientwrong/)。一般の忠告は単一のHttpClientを再利用することだけどそうしたらDNSの変更に反応しない
 
-ASP.NET Coreは「HttpClientのライフタイムを手動で管理するときに発生する一般的なDNSの問題を回避のために基礎となるHttpClientMessageHandlerインスタンスのプーリングとライフタイムを管理する」という新しい[IHttpClientFactory](https://docs.microsoft.com/ja-jp/aspnet/core/fundamentals/http-requests)を導入します。ボーナスとして、これはHttpClientのあまり知られていないフィーチャーをもっととっつきやすいにする：ミドルウェアをプラグインする能力（例えば、再試行と失敗を自動的に処理するために[Polly](https://github.com/App-vNext/Polly#polly)を使う）
+ASP.NET Coreが「`HttpClient`のライフタイムを手動で管理するときに発生する一般的なDNSの問題を回避のために基礎となる`HttpClientMessageHandler`インスタンスのプーリングとライフタイムを管理する」[IHttpClientFactory](https://docs.microsoft.com/ja-jp/aspnet/core/fundamentals/http-requests)を導入する。ボーナスとして、これが[ミドルウェアをプラグインするHttpClientの能力](https://docs.microsoft.com/ja-jp/aspnet/core/fundamentals/http-requests#outgoing-request-middleware)をもっととっつきやすいにする。例えば、再試行と失敗を自動的に処理するために[Polly](https://github.com/App-vNext/Polly#polly)を使うこと
 
-利用法次第では、コンストラクタが単にIHttpClientFactoryによって注入したHttpClientを受け取るかもしれない。コンストラクタはファクトリーそのものを受け取れば、これは同じようにモックされる：
+利用法次第、コンストラクタが単にIHttpClientFactoryによって注入したHttpClientを受け取るかもしれない。その場合はテストが違わない。コンストラクタがファクトリーそのものを受け取る場合は、同じようにモックできる：
 
 ```csharp
 var handler = new Mock<HttpMessageHandler>();
 var factory = handler.CreateClientFactory();
+```
 
-// 名前付きクライアントも設定できる（デフォルトを無効にする）
+このファクトリーはクラスに渡されたり[AutoMockerによって注入されたり](https://github.com/moq/Moq.AutoMocker)できる。`factory.CreateClient()`を呼び出すコードがモックなハンドラを使うクライアントを受ける
+
+`CreateClientFactory()`という拡張メソッドはディフォルトのクライエントを返すようにセットアップされたモックを返す。[名前付きクライアント](https://docs.microsoft.com/ja-jp/aspnet/core/fundamentals/http-requests?view=aspnetcore-3.1#named-clients)を使っている場合は次のようにセットアップを追加できる：
+
+```csharp
+// 名前付きクライアントも設定する（デフォルトを無効にする）
 Mock.Get(factory).Setup(x => x.CreateClient("api"))
     .Returns(() =>
     {
@@ -164,35 +181,16 @@ Mock.Get(factory).Setup(x => x.CreateClient("api"))
     });
 ```
 
-このファクトリーはクラスに渡せる、それとも[AutoMockerによって注入](https://github.com/moq/Moq.AutoMocker)できる、そして`factory.CreateClient()`を呼び出すコードがモックなハンドラを使うクライアントを受けます
+> ※「Extension methods (here: HttpClientFactoryExtensions.CreateClient) may not be used in setup / verification expressions.」というエラーが出たら、上に`"api"`がある場所に文字列を渡しているのを確認してください
 
 ### 完全なユニットテストの用例
 
-文書化としてユニットテストに向けるのが過ちかもしれないけど、この場合はこのライブラリがテストのためだしテストがこれを念頭に置いて書かれたから、もっと完全な用例（コメントと）は、こちら見てください：
+文書化としてユニットテストに向けることが過ちかもしれないけど、この場合はこのライブラリがテストのためだしテストがこれを念頭に置いて書かれたから、もっと完全な用例（コメントと）は、こちら見てください：
 
-- **[リクエスト拡張のテスト](test/Moq.Contrib.HttpClient.Test/RequestExtensionsTests.cs)** &mdash; これらはSetupとVerifyのヘルパーのみを使います
-- **[レスポンス拡張のテスト](test/Moq.Contrib.HttpClient.Test/ResponseExtensionsTests.cs)** &mdash; これらはReturnsResponseヘルパーに焦点をあてます
-- **[シークエンス拡張のテスト](test/Moq.Contrib.HttpClient.Test/SequenceExtensionsTests.cs)** &mdash; これらはシークエンスをモックすることを実証します
+- **[リクエスト拡張のテスト](test/Moq.Contrib.HttpClient.Test/RequestExtensionsTests.cs)** &mdash; SetupとVerifyのヘルパーに焦点をあてる
+- **[レスポンス拡張のテスト](test/Moq.Contrib.HttpClient.Test/ResponseExtensionsTests.cs)** &mdash; ReturnsResponseのオーバーロードに焦点をあてます
+- **[シークエンス拡張のテスト](test/Moq.Contrib.HttpClient.Test/SequenceExtensionsTests.cs)** &mdash; 明示的なシークエンスをモックすることを実証する
 
-## ライセンス / 寄付
+## ライセンス
 
-MITライセンス
-
-決して必要ではないけれど、もしこれが役立つならば、寄付がすごく感謝されます：
-
-[![PayPal.me](https://www.paypalobjects.com/digitalassets/c/website/marketing/apac/C2/logos-buttons/optimize/34_Blue_PayPal_Pill_Button.png)](https://www.paypal.me/maxkagamine/0jpy?country.x=JP&locale.x=ja_JP)
-
-<p>
-<details>
-<summary>&nbsp;<img src="https://github.com/maxkagamine/maxkagamine.com/raw/master/src/public/images/crypto.png" width="600" align="middle" /></summary>
-<br />
-
-```
-BTC  32SEpPUowijZWET5tbErgskNSBkjSmLwmo
-BCH  1DsWr5aoyQgcD6vYCTSViVmUcRSiYPPvPw
-DOGE DAEiyJP7F7YqZN9GJ12Z2RhfkPahyyN1DY
-
-ありがとうございます！
-```
-</details>
-</p>
+MIT
