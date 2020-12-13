@@ -138,18 +138,18 @@ namespace Moq.Contrib.HttpClient.Test
         [InlineData(HttpStatusCode.InternalServerError, new byte[] { 39, 39, 39, 39 }, "audio/flac")]
         public async Task RespondsWithStream(HttpStatusCode? statusCode, byte[] bytes, string mediaType)
         {
-            using (MemoryStream requestStream = new MemoryStream(bytes))
+            using (MemoryStream stream = new MemoryStream(bytes))
             {
                 if (statusCode.HasValue)
                 {
                     handler.SetupAnyRequest()
-                        .ReturnsResponse(statusCode.Value, requestStream, mediaType);
+                        .ReturnsResponse(statusCode.Value, stream, mediaType);
                 }
                 else
                 {
                     // Omitting status code defaults to OK
                     handler.SetupAnyRequest()
-                        .ReturnsResponse(requestStream, mediaType);
+                        .ReturnsResponse(stream, mediaType);
                 }
 
                 var response = await client.GetAsync("");
@@ -174,6 +174,73 @@ namespace Moq.Contrib.HttpClient.Test
 
             var response = await client.GetAsync("");
             response.Content.Should().BeSameAs(content);
+        }
+
+        [Fact]
+        public async Task MultipleRequestsCanBeMadeAgainstOneSetup()
+        {
+            handler.SetupRequest(HttpMethod.Get, "https://example.com/foo") // Handler doesn't know about client's BaseAddress
+                .ReturnsResponse("bar");
+
+            var response1 = await client.GetAsync("foo");
+            var response2 = await client.GetAsync("foo");
+            var response3 = await client.GetAsync("foo");
+
+            // If the same HttpResponseMessage were returned for each request, the HttpContent would be disposed on
+            // subsequent requests
+            (new[] { response1, response2, response3 }).Should()
+                .OnlyHaveUniqueItems("each request should get its own response object");
+            (new[] { response1.Content, response2.Content, response3.Content }).Should()
+                .OnlyHaveUniqueItems("each response should have its own HttpContent object");
+            (await response1.Content.ReadAsStringAsync()).Should().Be("bar");
+            (await response2.Content.ReadAsStringAsync()).Should().Be("bar", "the HttpContent should not be disposed");
+            (await response3.Content.ReadAsStringAsync()).Should().Be("bar", "the HttpContent should not be disposed");
+
+            handler.VerifyRequest(HttpMethod.Get, "https://example.com/foo", Times.Exactly(3));
+        }
+
+        [Fact]
+        public async Task StreamsStartAtSamePositionEachRequest()
+        {
+            // The above test ensures that subsequent requests to the same setup don't get a disposed StreamContent, but
+            // the underlying stream still needs to be seeked back for each request to get the same bytes
+
+            var bytes = new byte[]
+            {
+                121, 111, 117, 116, 117, 98, 101, 46, 99, 111, 109, 47, 112, 108, 97, 121, 108, 105, 115, 116, 63, 108,
+                105, 115, 116, 61, 80, 76, 89, 111, 111, 69, 65, 70, 85, 102, 104, 68, 102, 101, 118, 87, 70, 75, 76,
+                97, 55, 103, 104, 51, 66, 111, 103, 66, 85, 65, 101, 98, 89, 79
+            };
+
+            int offsetStreamPosition = 39;
+
+            using (MemoryStream stream = new MemoryStream(bytes))
+            using (MemoryStream offsetStream = new MemoryStream(bytes))
+            {
+                handler.SetupRequest(HttpMethod.Get, "https://example.com/normal")
+                    .ReturnsResponse(stream);
+
+                // This stream is the same but seeked forward to test that the response helper is returning the stream
+                // as it was given each time and not simply seeking back to the beginning
+                offsetStream.Seek(offsetStreamPosition, SeekOrigin.Begin);
+                handler.SetupRequest(HttpMethod.Get, "https://example.com/offset")
+                    .ReturnsResponse(stream);
+
+                var responseBytes1 = await client.GetByteArrayAsync("normal");
+                var responseBytes2 = await client.GetByteArrayAsync("normal");
+
+                var offsetResponseBytes1 = await client.GetByteArrayAsync("offset");
+                var offsetResponseBytes2 = await client.GetByteArrayAsync("offset");
+
+                responseBytes1.Should().BeEquivalentTo(bytes);
+                responseBytes2.Should().BeEquivalentTo(bytes,
+                    "the stream should be returned to its original position on subsequent requests");
+
+                byte[] expectedOffsetBytes = bytes.Skip(offsetStreamPosition).ToArray();
+                responseBytes1.Should().BeEquivalentTo(expectedOffsetBytes);
+                responseBytes2.Should().BeEquivalentTo(expectedOffsetBytes,
+                    "the stream should be returned to its original position on subsequent requests");
+            }
         }
     }
 }
