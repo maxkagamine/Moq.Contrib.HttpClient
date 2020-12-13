@@ -224,6 +224,10 @@ namespace Moq.Contrib.HttpClient.Test
                 // as it was given each time and not simply seeking back to the beginning
                 offsetStream.Seek(offsetStreamPosition, SeekOrigin.Begin);
                 handler.SetupRequest(HttpMethod.Get, "https://example.com/offset")
+                    .ReturnsResponse(offsetStream);
+
+                // Making sure this works not just with multiple requests but with multiple setups as well
+                handler.SetupRequest(HttpMethod.Get, "https://example.com/same")
                     .ReturnsResponse(stream);
 
                 var responseBytes1 = await client.GetByteArrayAsync("normal");
@@ -232,14 +236,21 @@ namespace Moq.Contrib.HttpClient.Test
                 var offsetResponseBytes1 = await client.GetByteArrayAsync("offset");
                 var offsetResponseBytes2 = await client.GetByteArrayAsync("offset");
 
+                var sameResponseBytes1 = await client.GetByteArrayAsync("same");
+                var sameResponseBytes2 = await client.GetByteArrayAsync("same");
+
                 responseBytes1.Should().BeEquivalentTo(bytes);
                 responseBytes2.Should().BeEquivalentTo(bytes,
                     "the stream should be returned to its original position on subsequent requests");
 
                 byte[] expectedOffsetBytes = bytes.Skip(offsetStreamPosition).ToArray();
-                responseBytes1.Should().BeEquivalentTo(expectedOffsetBytes);
-                responseBytes2.Should().BeEquivalentTo(expectedOffsetBytes,
+                offsetResponseBytes1.Should().BeEquivalentTo(expectedOffsetBytes);
+                offsetResponseBytes2.Should().BeEquivalentTo(expectedOffsetBytes,
                     "the stream should be returned to its original position on subsequent requests");
+
+                sameResponseBytes1.Should().BeEquivalentTo(bytes);
+                sameResponseBytes2.Should().BeEquivalentTo(bytes,
+                    "the last call to 'normal' should not have left the stream at the end");
             }
         }
     }

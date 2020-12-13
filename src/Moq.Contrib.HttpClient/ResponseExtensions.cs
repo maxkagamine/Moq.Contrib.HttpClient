@@ -358,7 +358,10 @@ namespace Moq.Contrib.HttpClient
         }
 
         /// <summary>
-        /// Specifies the response to return, as <see cref="StreamContent" />.
+        /// Specifies the response to return, as <see cref="StreamContent" />. If the stream is seekable, its position
+        /// will be remembered on the first request, and each subsequent request will seek back to that position. Note
+        /// that this means the stream will not be closed automatically when the <see cref="StreamContent" /> is
+        /// disposed.
         /// </summary>
         /// <param name="setup">The setup.</param>
         /// <param name="statusCode">The status code.</param>
@@ -378,12 +381,14 @@ namespace Moq.Contrib.HttpClient
                 throw new ArgumentNullException(nameof(content));
             }
 
+            var streamContentFactory = new StreamContentFactory(content);
+
             return setup.ReturnsAsync((HttpRequestMessage request, CancellationToken _) =>
             {
                 return CreateResponse(
                     request: request,
                     statusCode: statusCode,
-                    content: new StreamContent(content),
+                    content: streamContentFactory.Create(),
                     mediaType: mediaType,
                     configure: configure);
             });
@@ -418,7 +423,10 @@ namespace Moq.Contrib.HttpClient
         }
 
         /// <summary>
-        /// Specifies the response to return, as <see cref="StreamContent" /> with <see cref="HttpStatusCode.OK" />.
+        /// Specifies the response to return, as <see cref="StreamContent" /> with <see cref="HttpStatusCode.OK" />. If
+        /// the stream is seekable, its position will be remembered on the first request, and each subsequent request
+        /// will seek back to that position. Note that this means the stream will not be closed automatically when the
+        /// <see cref="StreamContent" /> is disposed.
         /// </summary>
         /// <param name="setup">The setup.</param>
         /// <param name="content">The response body.</param>
@@ -436,11 +444,13 @@ namespace Moq.Contrib.HttpClient
                 throw new ArgumentNullException(nameof(content));
             }
 
+            var streamContentFactory = new StreamContentFactory(content);
+
             return setup.ReturnsAsync((HttpRequestMessage request, CancellationToken _) =>
             {
                 return CreateResponse(
                     request: request,
-                    content: new StreamContent(content),
+                    content: streamContentFactory.Create(),
                     mediaType: mediaType,
                     configure: configure);
             });
