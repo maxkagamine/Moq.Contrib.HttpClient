@@ -4,20 +4,28 @@ on:
   push:
     branches: [ master ]
   pull_request:
-    branches: [ master ]
+  release:
+    types: [ published ]
 
 jobs:
-  build:
+  test:
+    name: Test
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up .NET Core
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 2.1.500
-    - name: Install dependencies
-      run: dotnet restore
-    - name: Build
-      run: dotnet build --configuration Release --no-restore
-    - name: Test
-      run: dotnet test --no-restore --verbosity normal
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Test
+        run: dotnet test -v normal
+
+  publish:
+    name: Publish
+    if: github.event_name == 'release'
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Pack
+        run: dotnet pack -c Release -p:Version=${GITHUB_REF#/refs/tags/v} -o .
+      - name: Push to NuGet
+        run: dotnet nuget push *.nupkg -k ${{secrets.NUGET_KEY}} -s https://api.nuget.org/v3/index.json

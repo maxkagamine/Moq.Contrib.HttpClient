@@ -9,10 +9,10 @@
     <Description>A set of extension methods for mocking HttpClient and IHttpClientFactory with Moq.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/maxkagamine/Moq.Contrib.HttpClient</PackageProjectUrl>
+    <PackageReleaseNotes>https://github.com/maxkagamine/Moq.Contrib.HttpClient/releases</PackageReleaseNotes>
     <PackageTags>moq http httpclient mock mocking test testing</PackageTags>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/maxkagamine/Moq.Contrib.HttpClient</RepositoryUrl>
-    <Version>1.2.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
