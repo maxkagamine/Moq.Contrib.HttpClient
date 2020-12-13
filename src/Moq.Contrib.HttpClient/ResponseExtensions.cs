@@ -4,8 +4,8 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
-using Moq;
 using Moq.Language;
 using Moq.Language.Flow;
 
@@ -13,16 +13,22 @@ namespace Moq.Contrib.HttpClient
 {
     public static partial class MockHttpMessageHandlerExtensions
     {
-        private static HttpResponseMessage CreateResponse(HttpStatusCode statusCode, Action<HttpResponseMessage> configure, HttpContent content = null, string mediaType = null)
+        private static HttpResponseMessage CreateResponse(
+            HttpRequestMessage request = null,
+            HttpStatusCode statusCode = HttpStatusCode.OK,
+            HttpContent content = null,
+            string mediaType = null,
+            Action<HttpResponseMessage> configure = null)
         {
-            var response = new HttpResponseMessage(statusCode);
-
-            if (content != null)
+            var response = new HttpResponseMessage(statusCode)
             {
-                if (mediaType != null)
-                    content.Headers.ContentType = new MediaTypeHeaderValue(mediaType);
+                RequestMessage = request,
+                Content = content
+            };
 
-                response.Content = content;
+            if (content != null && mediaType != null)
+            {
+                content.Headers.ContentType = new MediaTypeHeaderValue(mediaType);
             }
 
             configure?.Invoke(response);
@@ -37,8 +43,17 @@ namespace Moq.Contrib.HttpClient
         /// <param name="configure">An action to further configure the response such as setting headers.</param>
         public static IReturnsResult<HttpMessageHandler> ReturnsResponse(
             this ISetup<HttpMessageHandler, Task<HttpResponseMessage>> setup,
-            HttpStatusCode statusCode, Action<HttpResponseMessage> configure = null)
-            => setup.ReturnsAsync(CreateResponse(statusCode, configure));
+            HttpStatusCode statusCode,
+            Action<HttpResponseMessage> configure = null)
+        {
+            return setup.ReturnsAsync((HttpRequestMessage request, CancellationToken _) =>
+            {
+                return CreateResponse(
+                    request: request,
+                    statusCode: statusCode,
+                    configure: configure);
+            });
+        }
 
         /// <summary>
         /// Specifies the response to return in sequence.
@@ -48,8 +63,13 @@ namespace Moq.Contrib.HttpClient
         /// <param name="configure">An action to further configure the response such as setting headers.</param>
         public static ISetupSequentialResult<Task<HttpResponseMessage>> ReturnsResponse(
             this ISetupSequentialResult<Task<HttpResponseMessage>> setup,
-            HttpStatusCode statusCode, Action<HttpResponseMessage> configure = null)
-            => setup.ReturnsAsync(CreateResponse(statusCode, configure));
+            HttpStatusCode statusCode,
+            Action<HttpResponseMessage> configure = null)
+        {
+            return setup.ReturnsAsync(CreateResponse(
+                statusCode: statusCode,
+                configure: configure));
+        }
 
         /// <summary>
         /// Specifies the response to return.
@@ -61,12 +81,23 @@ namespace Moq.Contrib.HttpClient
         /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static IReturnsResult<HttpMessageHandler> ReturnsResponse(
             this ISetup<HttpMessageHandler, Task<HttpResponseMessage>> setup,
-            HttpStatusCode statusCode, HttpContent content, Action<HttpResponseMessage> configure = null)
+            HttpStatusCode statusCode,
+            HttpContent content,
+            Action<HttpResponseMessage> configure = null)
         {
-            if (content == null)
+            if (content is null)
+            {
                 throw new ArgumentNullException(nameof(content));
+            }
 
-            return setup.ReturnsAsync(CreateResponse(statusCode, configure, content));
+            return setup.ReturnsAsync((HttpRequestMessage request, CancellationToken _) =>
+            {
+                return CreateResponse(
+                    request: request,
+                    statusCode: statusCode,
+                    content: content,
+                    configure: configure);
+            });
         }
 
         /// <summary>
@@ -79,12 +110,19 @@ namespace Moq.Contrib.HttpClient
         /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static ISetupSequentialResult<Task<HttpResponseMessage>> ReturnsResponse(
             this ISetupSequentialResult<Task<HttpResponseMessage>> setup,
-            HttpStatusCode statusCode, HttpContent content, Action<HttpResponseMessage> configure = null)
+            HttpStatusCode statusCode,
+            HttpContent content,
+            Action<HttpResponseMessage> configure = null)
         {
-            if (content == null)
+            if (content is null)
+            {
                 throw new ArgumentNullException(nameof(content));
+            }
 
-            return setup.ReturnsAsync(CreateResponse(statusCode, configure, content));
+            return setup.ReturnsAsync(CreateResponse(
+                statusCode: statusCode,
+                content: content,
+                configure: configure));
         }
 
         /// <summary>
@@ -99,12 +137,25 @@ namespace Moq.Contrib.HttpClient
         /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static IReturnsResult<HttpMessageHandler> ReturnsResponse(
             this ISetup<HttpMessageHandler, Task<HttpResponseMessage>> setup,
-            HttpStatusCode statusCode, string content, string mediaType = null, Encoding encoding = null, Action<HttpResponseMessage> configure = null)
+            HttpStatusCode statusCode,
+            string content,
+            string mediaType = null,
+            Encoding encoding = null,
+            Action<HttpResponseMessage> configure = null)
         {
-            if (content == null)
+            if (content is null)
+            {
                 throw new ArgumentNullException(nameof(content));
+            }
 
-            return setup.ReturnsAsync(CreateResponse(statusCode, configure, new StringContent(content, encoding, mediaType)));
+            return setup.ReturnsAsync((HttpRequestMessage request, CancellationToken _) =>
+            {
+                return CreateResponse(
+                    request: request,
+                    statusCode: statusCode,
+                    content: new StringContent(content, encoding, mediaType),
+                    configure: configure);
+            });
         }
 
         /// <summary>
@@ -119,12 +170,21 @@ namespace Moq.Contrib.HttpClient
         /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static ISetupSequentialResult<Task<HttpResponseMessage>> ReturnsResponse(
             this ISetupSequentialResult<Task<HttpResponseMessage>> setup,
-            HttpStatusCode statusCode, string content, string mediaType = null, Encoding encoding = null, Action<HttpResponseMessage> configure = null)
+            HttpStatusCode statusCode,
+            string content,
+            string mediaType = null,
+            Encoding encoding = null,
+            Action<HttpResponseMessage> configure = null)
         {
-            if (content == null)
+            if (content is null)
+            {
                 throw new ArgumentNullException(nameof(content));
+            }
 
-            return setup.ReturnsAsync(CreateResponse(statusCode, configure, new StringContent(content, encoding, mediaType)));
+            return setup.ReturnsAsync(CreateResponse(
+                statusCode: statusCode,
+                content: new StringContent(content, encoding, mediaType),
+                configure: configure));
         }
 
         /// <summary>
@@ -138,8 +198,24 @@ namespace Moq.Contrib.HttpClient
         /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static IReturnsResult<HttpMessageHandler> ReturnsResponse(
             this ISetup<HttpMessageHandler, Task<HttpResponseMessage>> setup,
-            string content, string mediaType = null, Encoding encoding = null, Action<HttpResponseMessage> configure = null)
-            => setup.ReturnsResponse(HttpStatusCode.OK, content, mediaType, encoding, configure);
+            string content,
+            string mediaType = null,
+            Encoding encoding = null,
+            Action<HttpResponseMessage> configure = null)
+        {
+            if (content is null)
+            {
+                throw new ArgumentNullException(nameof(content));
+            }
+
+            return setup.ReturnsAsync((HttpRequestMessage request, CancellationToken _) =>
+            {
+                return CreateResponse(
+                    request: request,
+                    content: new StringContent(content, encoding, mediaType),
+                    configure: configure);
+            });
+        }
 
         /// <summary>
         /// Specifies the response to return in sequence, as <see cref="StringContent" /> with <see cref="HttpStatusCode.OK" />.
@@ -152,8 +228,20 @@ namespace Moq.Contrib.HttpClient
         /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static ISetupSequentialResult<Task<HttpResponseMessage>> ReturnsResponse(
             this ISetupSequentialResult<Task<HttpResponseMessage>> setup,
-            string content, string mediaType = null, Encoding encoding = null, Action<HttpResponseMessage> configure = null)
-            => setup.ReturnsResponse(HttpStatusCode.OK, content, mediaType, encoding, configure);
+            string content,
+            string mediaType = null,
+            Encoding encoding = null,
+            Action<HttpResponseMessage> configure = null)
+        {
+            if (content is null)
+            {
+                throw new ArgumentNullException(nameof(content));
+            }
+
+            return setup.ReturnsAsync(CreateResponse(
+                content: new StringContent(content, encoding, mediaType),
+                configure: configure));
+        }
 
         /// <summary>
         /// Specifies the response to return, as <see cref="ByteArrayContent" />.
@@ -166,12 +254,25 @@ namespace Moq.Contrib.HttpClient
         /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static IReturnsResult<HttpMessageHandler> ReturnsResponse(
             this ISetup<HttpMessageHandler, Task<HttpResponseMessage>> setup,
-            HttpStatusCode statusCode, byte[] content, string mediaType = null, Action<HttpResponseMessage> configure = null)
+            HttpStatusCode statusCode,
+            byte[] content,
+            string mediaType = null,
+            Action<HttpResponseMessage> configure = null)
         {
-            if (content == null)
+            if (content is null)
+            {
                 throw new ArgumentNullException(nameof(content));
+            }
 
-            return setup.ReturnsAsync(CreateResponse(statusCode, configure, new ByteArrayContent(content), mediaType));
+            return setup.ReturnsAsync((HttpRequestMessage request, CancellationToken _) =>
+            {
+                return CreateResponse(
+                    request: request,
+                    statusCode: statusCode,
+                    content: new ByteArrayContent(content),
+                    mediaType: mediaType,
+                    configure: configure);
+            });
         }
 
         /// <summary>
@@ -185,12 +286,21 @@ namespace Moq.Contrib.HttpClient
         /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static ISetupSequentialResult<Task<HttpResponseMessage>> ReturnsResponse(
             this ISetupSequentialResult<Task<HttpResponseMessage>> setup,
-            HttpStatusCode statusCode, byte[] content, string mediaType = null, Action<HttpResponseMessage> configure = null)
+            HttpStatusCode statusCode,
+            byte[] content,
+            string mediaType = null,
+            Action<HttpResponseMessage> configure = null)
         {
-            if (content == null)
+            if (content is null)
+            {
                 throw new ArgumentNullException(nameof(content));
+            }
 
-            return setup.ReturnsAsync(CreateResponse(statusCode, configure, new ByteArrayContent(content), mediaType));
+            return setup.ReturnsAsync(CreateResponse(
+                statusCode: statusCode,
+                content: new ByteArrayContent(content),
+                mediaType: mediaType,
+                configure: configure));
         }
 
         /// <summary>
@@ -203,8 +313,24 @@ namespace Moq.Contrib.HttpClient
         /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static IReturnsResult<HttpMessageHandler> ReturnsResponse(
             this ISetup<HttpMessageHandler, Task<HttpResponseMessage>> setup,
-            byte[] content, string mediaType = null, Action<HttpResponseMessage> configure = null)
-            => setup.ReturnsResponse(HttpStatusCode.OK, content, mediaType, configure);
+            byte[] content,
+            string mediaType = null,
+            Action<HttpResponseMessage> configure = null)
+        {
+            if (content is null)
+            {
+                throw new ArgumentNullException(nameof(content));
+            }
+
+            return setup.ReturnsAsync((HttpRequestMessage request, CancellationToken _) =>
+            {
+                return CreateResponse(
+                    request: request,
+                    content: new ByteArrayContent(content),
+                    mediaType: mediaType,
+                    configure: configure);
+            });
+        }
 
         /// <summary>
         /// Specifies the response to return in sequence, as <see cref="ByteArrayContent" /> with <see cref="HttpStatusCode.OK" />.
@@ -216,8 +342,20 @@ namespace Moq.Contrib.HttpClient
         /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static ISetupSequentialResult<Task<HttpResponseMessage>> ReturnsResponse(
             this ISetupSequentialResult<Task<HttpResponseMessage>> setup,
-            byte[] content, string mediaType = null, Action<HttpResponseMessage> configure = null)
-            => setup.ReturnsResponse(HttpStatusCode.OK, content, mediaType, configure);
+            byte[] content,
+            string mediaType = null,
+            Action<HttpResponseMessage> configure = null)
+        {
+            if (content is null)
+            {
+                throw new ArgumentNullException(nameof(content));
+            }
+
+            return setup.ReturnsAsync(CreateResponse(
+                content: new ByteArrayContent(content),
+                mediaType: mediaType,
+                configure: configure));
+        }
 
         /// <summary>
         /// Specifies the response to return, as <see cref="StreamContent" />.
@@ -230,12 +368,25 @@ namespace Moq.Contrib.HttpClient
         /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static IReturnsResult<HttpMessageHandler> ReturnsResponse(
             this ISetup<HttpMessageHandler, Task<HttpResponseMessage>> setup,
-            HttpStatusCode statusCode, Stream content, string mediaType = null, Action<HttpResponseMessage> configure = null)
+            HttpStatusCode statusCode,
+            Stream content,
+            string mediaType = null,
+            Action<HttpResponseMessage> configure = null)
         {
-            if (content == null)
+            if (content is null)
+            {
                 throw new ArgumentNullException(nameof(content));
+            }
 
-            return setup.ReturnsAsync(CreateResponse(statusCode, configure, new StreamContent(content), mediaType));
+            return setup.ReturnsAsync((HttpRequestMessage request, CancellationToken _) =>
+            {
+                return CreateResponse(
+                    request: request,
+                    statusCode: statusCode,
+                    content: new StreamContent(content),
+                    mediaType: mediaType,
+                    configure: configure);
+            });
         }
 
         /// <summary>
@@ -249,12 +400,21 @@ namespace Moq.Contrib.HttpClient
         /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static ISetupSequentialResult<Task<HttpResponseMessage>> ReturnsResponse(
             this ISetupSequentialResult<Task<HttpResponseMessage>> setup,
-            HttpStatusCode statusCode, Stream content, string mediaType = null, Action<HttpResponseMessage> configure = null)
+            HttpStatusCode statusCode,
+            Stream content,
+            string mediaType = null,
+            Action<HttpResponseMessage> configure = null)
         {
-            if (content == null)
+            if (content is null)
+            {
                 throw new ArgumentNullException(nameof(content));
+            }
 
-            return setup.ReturnsAsync(CreateResponse(statusCode, configure, new StreamContent(content), mediaType));
+            return setup.ReturnsAsync(CreateResponse(
+                statusCode: statusCode,
+                content: new StreamContent(content),
+                mediaType: mediaType,
+                configure: configure));
         }
 
         /// <summary>
@@ -267,8 +427,24 @@ namespace Moq.Contrib.HttpClient
         /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static IReturnsResult<HttpMessageHandler> ReturnsResponse(
             this ISetup<HttpMessageHandler, Task<HttpResponseMessage>> setup,
-            Stream content, string mediaType = null, Action<HttpResponseMessage> configure = null)
-            => setup.ReturnsResponse(HttpStatusCode.OK, content, mediaType, configure);
+            Stream content,
+            string mediaType = null,
+            Action<HttpResponseMessage> configure = null)
+        {
+            if (content is null)
+            {
+                throw new ArgumentNullException(nameof(content));
+            }
+
+            return setup.ReturnsAsync((HttpRequestMessage request, CancellationToken _) =>
+            {
+                return CreateResponse(
+                    request: request,
+                    content: new StreamContent(content),
+                    mediaType: mediaType,
+                    configure: configure);
+            });
+        }
 
         /// <summary>
         /// Specifies the response to return in sequence, as <see cref="StreamContent" /> with <see cref="HttpStatusCode.OK" />.
@@ -280,7 +456,19 @@ namespace Moq.Contrib.HttpClient
         /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static ISetupSequentialResult<Task<HttpResponseMessage>> ReturnsResponse(
             this ISetupSequentialResult<Task<HttpResponseMessage>> setup,
-            Stream content, string mediaType = null, Action<HttpResponseMessage> configure = null)
-            => setup.ReturnsResponse(HttpStatusCode.OK, content, mediaType, configure);
+            Stream content,
+            string mediaType = null,
+            Action<HttpResponseMessage> configure = null)
+        {
+            if (content is null)
+            {
+                throw new ArgumentNullException(nameof(content));
+            }
+
+            return setup.ReturnsAsync(CreateResponse(
+                content: new StreamContent(content),
+                mediaType: mediaType,
+                configure: configure));
+        }
     }
 }
