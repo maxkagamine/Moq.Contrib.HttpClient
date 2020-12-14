@@ -91,34 +91,48 @@ namespace Moq.Contrib.HttpClient.Test
                     (await r.Content.ReadAsStringAsync()) == PointOfOrigin)
                 .ReturnsResponse("Chevron 7, locked!");
 
+            async Task<string> PostAndReadString(Uri uri, string content = "")
+            {
+                // Even though this is disposing of each response, on the second cycle it will get new response
+                // instances (another test of ResponseExtensionsTests.ReturnsNewResponseInstanceEachRequest)
+                using (var response = await client.PostAsync(uri, new StringContent(content)))
+                {
+                    return await response.Content.ReadAsStringAsync();
+                }
+            }
+
             Func<Task> dialItUp = async () =>
             {
-                await client.PostAsync(encodeUrl, new StringContent("prac"));
-                await client.PostAsync(encodeUrl, new StringContent("laru"));
-                await client.PostAsync(encodeUrl, new StringContent("sh"));
+                (await PostAndReadString(encodeUrl)).Should().Be("Chevron 1 encoded!");
+                (await PostAndReadString(encodeUrl)).Should().Be("Chevron 2 encoded!");
+                (await PostAndReadString(encodeUrl)).Should().Be("Chevron 3 encoded!");
 
                 if (!doItCorrectly)
                 {
                     // Walter you silly
-                    await client.PostAsync(lockUrl, new StringContent(PointOfOrigin));
+                    (await PostAndReadString(lockUrl, PointOfOrigin)).Should().Be("Chevron 7, locked!");
 
                     // We should not reach this point. Also, https://youtu.be/Qfgdlw1Z88I?t=360
                     throw new InvalidOperationException("Colonel O'Neill, what the hell are you doing?!");
                 }
 
-                await client.PostAsync(encodeUrl, new StringContent("ta"));
-                await client.PostAsync(encodeUrl, new StringContent("on"));
-                await client.PostAsync(encodeUrl, new StringContent("as"));
-                await client.PostAsync(lockUrl, new StringContent(PointOfOrigin));
+                (await PostAndReadString(encodeUrl)).Should().Be("Chevron 4 encoded!");
+                (await PostAndReadString(encodeUrl)).Should().Be("Chevron 5 encoded!");
+                (await PostAndReadString(encodeUrl)).Should().Be("Chevron 6 encoded!");
+
+                (await PostAndReadString(lockUrl, PointOfOrigin)).Should().Be("Chevron 7, locked!");
             };
 
             if (doItCorrectly)
             {
-                await dialItUp.Should().NotThrowAsync("indeed");
+                await dialItUp.Should().NotThrowAsync();
+
+                // Do it again! Unlikely anyone will actually need to use Cyclic, but it works.
+                await dialItUp.Should().NotThrowAsync("we can repeat the sequence with Cyclic = true");
             }
             else
             {
-                await dialItUp.Should().ThrowAsync<MockException>("if you immediately know the candlelight is fire, then the meal was cooked a long time ago");
+                await dialItUp.Should().ThrowAsync<MockException>();
             }
         }
     }
