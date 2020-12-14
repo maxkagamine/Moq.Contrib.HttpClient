@@ -184,19 +184,17 @@ namespace Moq.Contrib.HttpClient.Test
 
             var response1 = await client.GetAsync("foo");
             var response2 = await client.GetAsync("foo");
-            var response3 = await client.GetAsync("foo");
 
             // New instances are returned for each request to ensure that subsequent requests don't receive a disposed
             // HttpResponseMessage or HttpContent
-            (new[] { response1, response2, response3 }).Should()
-                .OnlyHaveUniqueItems("each request should get its own response object");
-            (new[] { response1.Content, response2.Content, response3.Content }).Should()
-                .OnlyHaveUniqueItems("each response should have its own HttpContent object");
-            (await response1.Content.ReadAsStringAsync()).Should().Be("bar");
-            (await response2.Content.ReadAsStringAsync()).Should().Be("bar", "the HttpContent should not be disposed");
-            (await response3.Content.ReadAsStringAsync()).Should().Be("bar", "the HttpContent should not be disposed");
+            response2.Should().NotBeSameAs(response1, "each request should get its own response object");
+            response2.Content.Should().NotBeSameAs(response1.Content, "each response should have its own content object");
 
-            handler.VerifyRequest(HttpMethod.Get, "https://example.com/foo", Times.Exactly(3));
+            // HttpClient.GetStringAsync() wraps the HttpResponseMessage in a `using` (up until at least .NET 5)
+            (await client.GetStringAsync("foo")).Should().Be("bar");
+            (await client.GetStringAsync("foo")).Should().Be("bar", "the HttpContent should not be disposed");
+
+            handler.VerifyRequest(HttpMethod.Get, "https://example.com/foo", Times.Exactly(4));
         }
 
         [Fact]
