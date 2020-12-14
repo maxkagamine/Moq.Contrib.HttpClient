@@ -218,7 +218,8 @@ namespace Moq.Contrib.HttpClient
         }
 
         /// <summary>
-        /// Specifies the response to return in sequence, as <see cref="StringContent" /> with <see cref="HttpStatusCode.OK" />.
+        /// Specifies the response to return in sequence, as <see cref="StringContent" /> with <see
+        /// cref="HttpStatusCode.OK" />.
         /// </summary>
         /// <param name="setup">The setup.</param>
         /// <param name="content">The response body.</param>
@@ -333,7 +334,8 @@ namespace Moq.Contrib.HttpClient
         }
 
         /// <summary>
-        /// Specifies the response to return in sequence, as <see cref="ByteArrayContent" /> with <see cref="HttpStatusCode.OK" />.
+        /// Specifies the response to return in sequence, as <see cref="ByteArrayContent" /> with <see
+        /// cref="HttpStatusCode.OK" />.
         /// </summary>
         /// <param name="setup">The setup.</param>
         /// <param name="content">The response body.</param>
@@ -358,10 +360,8 @@ namespace Moq.Contrib.HttpClient
         }
 
         /// <summary>
-        /// Specifies the response to return, as <see cref="StreamContent" />. If the stream is seekable, its position
-        /// will be remembered on the first request, and each subsequent request will seek back to that position. Note
-        /// that this means the stream will not be closed automatically when the <see cref="StreamContent" /> is
-        /// disposed.
+        /// Specifies the response to return, as <see cref="StreamContent" />. If the stream is seekable, it will be
+        /// wrapped to allow for reuse across multiple requests (each request maintains an independent stream position).
         /// </summary>
         /// <param name="setup">The setup.</param>
         /// <param name="statusCode">The status code.</param>
@@ -381,21 +381,21 @@ namespace Moq.Contrib.HttpClient
                 throw new ArgumentNullException(nameof(content));
             }
 
-            var streamContentFactory = new StreamContentFactory(content);
-
             return setup.ReturnsAsync((HttpRequestMessage request, CancellationToken _) =>
             {
                 return CreateResponse(
                     request: request,
                     statusCode: statusCode,
-                    content: streamContentFactory.Create(),
+                    content: CreateStreamContent(content),
                     mediaType: mediaType,
                     configure: configure);
             });
         }
 
         /// <summary>
-        /// Specifies the response to return in sequence, as <see cref="StreamContent" />.
+        /// Specifies the response to return in sequence, as <see cref="StreamContent" />. If the stream is seekable, it
+        /// will be wrapped to allow for reuse across multiple requests (each request maintains an independent stream
+        /// position).
         /// </summary>
         /// <param name="setup">The setup.</param>
         /// <param name="statusCode">The status code.</param>
@@ -417,16 +417,15 @@ namespace Moq.Contrib.HttpClient
 
             return setup.ReturnsAsync(CreateResponse(
                 statusCode: statusCode,
-                content: new StreamContent(content),
+                content: CreateStreamContent(content),
                 mediaType: mediaType,
                 configure: configure));
         }
 
         /// <summary>
         /// Specifies the response to return, as <see cref="StreamContent" /> with <see cref="HttpStatusCode.OK" />. If
-        /// the stream is seekable, its position will be remembered on the first request, and each subsequent request
-        /// will seek back to that position. Note that this means the stream will not be closed automatically when the
-        /// <see cref="StreamContent" /> is disposed.
+        /// the stream is seekable, it will be wrapped to allow for reuse across multiple requests (each request
+        /// maintains an independent stream position).
         /// </summary>
         /// <param name="setup">The setup.</param>
         /// <param name="content">The response body.</param>
@@ -444,20 +443,20 @@ namespace Moq.Contrib.HttpClient
                 throw new ArgumentNullException(nameof(content));
             }
 
-            var streamContentFactory = new StreamContentFactory(content);
-
             return setup.ReturnsAsync((HttpRequestMessage request, CancellationToken _) =>
             {
                 return CreateResponse(
                     request: request,
-                    content: streamContentFactory.Create(),
+                    content: CreateStreamContent(content),
                     mediaType: mediaType,
                     configure: configure);
             });
         }
 
         /// <summary>
-        /// Specifies the response to return in sequence, as <see cref="StreamContent" /> with <see cref="HttpStatusCode.OK" />.
+        /// Specifies the response to return in sequence, as <see cref="StreamContent" /> with <see
+        /// cref="HttpStatusCode.OK" />. If the stream is seekable, it will be wrapped to allow for reuse across
+        /// multiple requests (each request maintains an independent stream position).
         /// </summary>
         /// <param name="setup">The setup.</param>
         /// <param name="content">The response body.</param>
@@ -476,9 +475,12 @@ namespace Moq.Contrib.HttpClient
             }
 
             return setup.ReturnsAsync(CreateResponse(
-                content: new StreamContent(content),
+                content: CreateStreamContent(content),
                 mediaType: mediaType,
                 configure: configure));
         }
+
+        private static StreamContent CreateStreamContent(Stream content) =>
+            new StreamContent(content.CanSeek ? new ResponseStream(content) : content);
     }
 }

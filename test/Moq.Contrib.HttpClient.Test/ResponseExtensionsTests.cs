@@ -177,7 +177,7 @@ namespace Moq.Contrib.HttpClient.Test
         }
 
         [Fact]
-        public async Task MultipleRequestsCanBeMadeAgainstOneSetup()
+        public async Task ReturnsNewResponseInstanceEachRequest()
         {
             handler.SetupRequest(HttpMethod.Get, "https://example.com/foo") // Handler doesn't know about client's BaseAddress
                 .ReturnsResponse("bar");
@@ -186,8 +186,8 @@ namespace Moq.Contrib.HttpClient.Test
             var response2 = await client.GetAsync("foo");
             var response3 = await client.GetAsync("foo");
 
-            // If the same HttpResponseMessage were returned for each request, the HttpContent would be disposed on
-            // subsequent requests
+            // New instances are returned for each request to ensure that subsequent requests don't receive a disposed
+            // HttpResponseMessage or HttpContent
             (new[] { response1, response2, response3 }).Should()
                 .OnlyHaveUniqueItems("each request should get its own response object");
             (new[] { response1.Content, response2.Content, response3.Content }).Should()
@@ -200,11 +200,8 @@ namespace Moq.Contrib.HttpClient.Test
         }
 
         [Fact]
-        public async Task StreamsStartAtSamePositionEachRequest()
+        public async Task StreamsReadFromSamePositionEachRequest()
         {
-            // The above test ensures that subsequent requests to the same setup don't get a disposed StreamContent, but
-            // the underlying stream still needs to be seeked back for each request to get the same bytes
-
             var bytes = new byte[]
             {
                 121, 111, 117, 116, 117, 98, 101, 46, 99, 111, 109, 47, 112, 108, 97, 121, 108, 105, 115, 116, 63, 108,
@@ -213,6 +210,7 @@ namespace Moq.Contrib.HttpClient.Test
             };
 
             int offsetStreamPosition = 39;
+            byte[] expectedOffsetBytes = bytes.Skip(offsetStreamPosition).ToArray();
 
             using (MemoryStream stream = new MemoryStream(bytes))
             using (MemoryStream offsetStream = new MemoryStream(bytes))
@@ -220,37 +218,33 @@ namespace Moq.Contrib.HttpClient.Test
                 handler.SetupRequest(HttpMethod.Get, "https://example.com/normal")
                     .ReturnsResponse(stream);
 
-                // This stream is the same but seeked forward to test that the response helper is returning the stream
-                // as it was given each time and not simply seeking back to the beginning
+                // Multiple setups can share the same stream as well
+                handler.SetupRequest(HttpMethod.Get, "https://example.com/normal2")
+                    .ReturnsResponse(stream);
+
+                // This stream is the same but seeked forward; each request should read from this position rather than
+                // seeking back to the beginning
                 offsetStream.Seek(offsetStreamPosition, SeekOrigin.Begin);
                 handler.SetupRequest(HttpMethod.Get, "https://example.com/offset")
                     .ReturnsResponse(offsetStream);
 
-                // Making sure this works not just with multiple requests but with multiple setups as well
-                handler.SetupRequest(HttpMethod.Get, "https://example.com/same")
-                    .ReturnsResponse(stream);
-
                 var responseBytes1 = await client.GetByteArrayAsync("normal");
                 var responseBytes2 = await client.GetByteArrayAsync("normal");
+                var responseBytes3 = await client.GetByteArrayAsync("normal2");
 
                 var offsetResponseBytes1 = await client.GetByteArrayAsync("offset");
                 var offsetResponseBytes2 = await client.GetByteArrayAsync("offset");
 
-                var sameResponseBytes1 = await client.GetByteArrayAsync("same");
-                var sameResponseBytes2 = await client.GetByteArrayAsync("same");
-
                 responseBytes1.Should().BeEquivalentTo(bytes);
                 responseBytes2.Should().BeEquivalentTo(bytes,
-                    "the stream should be returned to its original position on subsequent requests");
+                    "the stream should be returned to its original position after being read");
+                responseBytes3.Should().BeEquivalentTo(bytes,
+                    "the stream should be reusable not just between requests to one setup but also between setups");
 
-                byte[] expectedOffsetBytes = bytes.Skip(offsetStreamPosition).ToArray();
-                offsetResponseBytes1.Should().BeEquivalentTo(expectedOffsetBytes);
+                offsetResponseBytes1.Should().BeEquivalentTo(expectedOffsetBytes,
+                    "the stream should read from its initial (offset) position, not necessarily the beginning");
                 offsetResponseBytes2.Should().BeEquivalentTo(expectedOffsetBytes,
-                    "the stream should be returned to its original position on subsequent requests");
-
-                sameResponseBytes1.Should().BeEquivalentTo(bytes);
-                sameResponseBytes2.Should().BeEquivalentTo(bytes,
-                    "the last call to 'normal' should not have left the stream at the end");
+                    "the stream should be returned to its original (offset, not zero) position after being read");
             }
         }
     }
