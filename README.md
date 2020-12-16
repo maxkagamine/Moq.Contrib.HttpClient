@@ -1,3 +1,5 @@
+![](https://raw.githubusercontent.com/maxkagamine/Moq.Contrib.HttpClient/7981a8dfe9c076b10d2dae2234e2f01f57731b6a/banner.png)
+
 # Moq.Contrib.HttpClient
 
 [![NuGet][nuget badge]][nuget] [![ci build badge]][ci build]
@@ -194,4 +196,3 @@ Though it may be a faux pas to point to the unit tests as documentation, in this
 ## License
 
 MIT
-

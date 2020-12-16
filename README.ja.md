@@ -1,3 +1,5 @@
+![](https://raw.githubusercontent.com/maxkagamine/Moq.Contrib.HttpClient/7981a8dfe9c076b10d2dae2234e2f01f57731b6a/banner.ja.png)
+
 # Moq.Contrib.HttpClient
 
 [![NuGet][nuget badge]][nuget] [![ci build badge]][ci build]
