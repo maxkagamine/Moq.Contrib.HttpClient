@@ -27,6 +27,7 @@ These extension methods make mocking HTTP requests as easy as mocking a service 
   - [Setting up a sequence of requests](#setting-up-a-sequence-of-requests)
   - [Composing responses based on the request body](#composing-responses-based-on-the-request-body)
   - [Using IHttpClientFactory](#using-ihttpclientfactory)
+  - [Integration tests](#integration-tests)
   - [Complete unit test examples](#complete-unit-test-examples)
 - [License](#license)
 
@@ -142,7 +143,7 @@ See the [sequence extensions tests](test/Moq.Contrib.HttpClient.Test/SequenceExt
 
 ### Composing responses based on the request body
 
-Since it's Moq, we can use the normal Returns method together with the request helpers for more complex responses:
+Since it's all still Moq, we can use the normal Returns method together with the request helpers for more complex responses:
 
 ```csharp
 handler.SetupRequest("https://example.com/hello")
@@ -185,9 +186,37 @@ Mock.Get(factory).Setup(x => x.CreateClient("api"))
 
 > Note: If you're getting a "Extension methods (here: HttpClientFactoryExtensions.CreateClient) may not be used in setup / verification expressions." error, make sure you're passing a string where it says `"api"` in the example.
 
+### Integration tests
+
+For [integration tests](https://docs.microsoft.com/en-us/aspnet/core/test/integration-tests), rather than replace the IHttpClientFactory implementation in the service collection, it's possible to leverage the existing DI infrastructure and configure it to use a mock handler as the "primary" HttpMessageHandler instead:
+
+```csharp
+public class ExampleTests : IClassFixture<WebApplicationFactory<Startup>>
+{
+    private readonly WebApplicationFactory<Startup> factory;
+    private readonly Mock<HttpMessageHandler> githubHandler = new();
+
+    public ExampleTests(WebApplicationFactory<Startup> factory)
+    {
+        this.factory = factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureTestServices(services =>
+            {
+                // For the default (unnamed) client, use `Options.DefaultName`
+                services.AddHttpClient("github")
+                    .ConfigurePrimaryHttpMessageHandler(() => githubHandler.Object);
+            });
+        });
+    }
+```
+
+This way, the integration tests use the same dependency injection and HttpClient configurations from `ConfigureServices()` as would normally be used.
+
+See [this sample ASP.NET Core app](test/IntegrationTestExample/Startup.cs) and [its integration test](test/IntegrationTestExample.Test/ExampleTests.cs) for a working example.
+
 ### Complete unit test examples
 
-Though it may be a faux pas to point to the unit tests as documentation, in this case the library is specifically for testing, and so they were written with this in mind. Thus, for some more complete working examples (with comments), please see here:
+Though it may be a faux pas to point to unit tests as documentation, in this case they were written for exactly that purpose, so for more complete usage examples, please see here:
 
 - **[Request extensions tests](test/Moq.Contrib.HttpClient.Test/RequestExtensionsTests.cs)** &mdash; these cover the Setup & Verify helpers
 - **[Response extensions tests](test/Moq.Contrib.HttpClient.Test/ResponseExtensionsTests.cs)** &mdash; these cover the ReturnsResponse overloads
