@@ -27,6 +27,7 @@ HttpClientを直接モックするのは難しいことは[よく知られてい
   - [リクエストのシークエンスをセットアップする](#リクエストのシークエンスをセットアップする)
   - [リクエストの本体に基づいてレスポンスを書く](#リクエストの本体に基づいてレスポンスを書く)
   - [IHttpClientFactoryの使い方](#ihttpclientfactoryの使い方)
+  - [統合テスト](#統合テスト)
   - [完全なユニットテストの用例](#完全なユニットテストの用例)
 - [ライセンス](#ライセンス)
 
@@ -142,7 +143,7 @@ Moqは2つシークエンスのタイプがある：
 
 ### リクエストの本体に基づいてレスポンスを書く
 
-Moqなので、もっと複雑のレスポンスのためには普通のMoqのメソッドがリクエストのヘルパーと一緒に使用できる：
+すべてはまだMoqなので、もっと複雑のレスポンスのためには普通のMoqのメソッドがリクエストのヘルパーと一緒に使用できる：
 
 ```csharp
 handler.SetupRequest("https://example.com/hello")
@@ -185,9 +186,37 @@ Mock.Get(factory).Setup(x => x.CreateClient("api"))
 
 > ※「Extension methods (here: HttpClientFactoryExtensions.CreateClient) may not be used in setup / verification expressions.」というエラーが出たら、上に`"api"`がある場所に文字列を渡しているのを確認してください
 
+### 統合テスト
+
+[統合テスト](https://docs.microsoft.com/ja-jp/aspnet/core/test/integration-tests)は、サービスコレクションにあるIHttpClientFactory実装を変えるよりも、既存のDIインフラを活用してプライマリなHttpClientHandlerとしてモックなハンドラを使うように設定できる：
+
+```csharp
+public class ExampleTests : IClassFixture<WebApplicationFactory<Startup>>
+{
+    private readonly WebApplicationFactory<Startup> factory;
+    private readonly Mock<HttpMessageHandler> githubHandler = new();
+
+    public ExampleTests(WebApplicationFactory<Startup> factory)
+    {
+        this.factory = factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureTestServices(services =>
+            {
+                // デフォルト（名前なし）のクライアントの場合は`Options.DefaultName`とを使って
+                services.AddHttpClient("github")
+                    .ConfigurePrimaryHttpMessageHandler(() => githubHandler.Object);
+            });
+        });
+    }
+```
+
+これで、統合テストは普通と同じ`ConfigureServices()`での依存性注入とHttpClient設定を使う
+
+例については、[このASP.NET Coreのサンプルのアプリ](test/IntegrationTestExample/Startup.cs)と[その統合テスト](test/IntegrationTestExample.Test/ExampleTests.cs)を見てください
+
 ### 完全なユニットテストの用例
 
-文書化としてユニットテストに向けることが過ちかもしれないけど、この場合はこのライブラリがテストのためだしテストがこれを念頭に置いて書かれたから、もっと完全な用例（コメントと）は、こちら見てください：
+ユニットテストがドキュメントにもなるために書かれたので、もっと完全な使い方の用例はこちら見てください：
 
 - **[リクエスト拡張のテスト](test/Moq.Contrib.HttpClient.Test/RequestExtensionsTests.cs)** &mdash; SetupとVerifyのヘルパーに焦点をあてる
 - **[レスポンス拡張のテスト](test/Moq.Contrib.HttpClient.Test/ResponseExtensionsTests.cs)** &mdash; ReturnsResponseのオーバーロードに焦点をあてます

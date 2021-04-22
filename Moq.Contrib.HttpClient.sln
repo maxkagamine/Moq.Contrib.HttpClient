@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27703.2026
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30803.129
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{C40CC895-DEAF-48C1-9D07-F5FB49EC2DAD}"
 EndProject
@@ -9,7 +9,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{8AD2CDD5-E
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Moq.Contrib.HttpClient", "src\Moq.Contrib.HttpClient\Moq.Contrib.HttpClient.csproj", "{12F6B27E-0A30-4105-80FF-B5C9B5D69C6B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Moq.Contrib.HttpClient.Test", "test\Moq.Contrib.HttpClient.Test\Moq.Contrib.HttpClient.Test.csproj", "{68DA515D-A6F6-4C6B-A750-8456498868A0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Moq.Contrib.HttpClient.Test", "test\Moq.Contrib.HttpClient.Test\Moq.Contrib.HttpClient.Test.csproj", "{68DA515D-A6F6-4C6B-A750-8456498868A0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IntegrationTestExample", "test\IntegrationTestExample\IntegrationTestExample.csproj", "{2D2D6A75-2112-4727-B1FF-18E1E91336E5}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IntegrationTestExample.Test", "test\IntegrationTestExample.Test\IntegrationTestExample.Test.csproj", "{13F98CE7-A317-4728-83D0-9E0937E316E3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -25,6 +29,14 @@ Global
 		{68DA515D-A6F6-4C6B-A750-8456498868A0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{68DA515D-A6F6-4C6B-A750-8456498868A0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{68DA515D-A6F6-4C6B-A750-8456498868A0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2D2D6A75-2112-4727-B1FF-18E1E91336E5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2D2D6A75-2112-4727-B1FF-18E1E91336E5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2D2D6A75-2112-4727-B1FF-18E1E91336E5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2D2D6A75-2112-4727-B1FF-18E1E91336E5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{13F98CE7-A317-4728-83D0-9E0937E316E3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{13F98CE7-A317-4728-83D0-9E0937E316E3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{13F98CE7-A317-4728-83D0-9E0937E316E3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{13F98CE7-A317-4728-83D0-9E0937E316E3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -32,6 +44,8 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{12F6B27E-0A30-4105-80FF-B5C9B5D69C6B} = {C40CC895-DEAF-48C1-9D07-F5FB49EC2DAD}
 		{68DA515D-A6F6-4C6B-A750-8456498868A0} = {8AD2CDD5-EF40-4EA0-BD3A-98A074EF09B3}
+		{2D2D6A75-2112-4727-B1FF-18E1E91336E5} = {8AD2CDD5-EF40-4EA0-BD3A-98A074EF09B3}
+		{13F98CE7-A317-4728-83D0-9E0937E316E3} = {8AD2CDD5-EF40-4EA0-BD3A-98A074EF09B3}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {9BA5E549-F490-49C9-8A68-D8A36D047F6D}
