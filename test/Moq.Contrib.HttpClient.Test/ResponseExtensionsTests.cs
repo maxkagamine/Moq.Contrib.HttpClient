@@ -245,5 +245,24 @@ namespace Moq.Contrib.HttpClient.Test
                     "the stream should be returned to its original (offset, not zero) position after being read");
             }
         }
+
+        [Fact]
+        public async Task SimulateNetworkErrors()
+        {
+            var handler = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+            var client = handler.CreateClient();
+
+            // Triggering a network error (e.g. connection refused) can be done using the standard Throws()
+            handler.SetupAnyRequest()
+                .Throws<HttpRequestException>();
+
+            // Fancier version:
+            //var inner = new System.Net.Sockets.SocketException((int)System.Net.Sockets.SocketError.ConnectionRefused);
+            //handler.SetupAnyRequest()
+            //    .Throws(new HttpRequestException(inner.Message, inner));
+
+            Func<Task> attempt = () => client.GetAsync("http://example.com");
+            await attempt.Should().ThrowAsync<HttpRequestException>();
+        }
     }
 }
