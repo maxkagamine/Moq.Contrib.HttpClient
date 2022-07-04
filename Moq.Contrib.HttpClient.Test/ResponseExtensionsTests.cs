@@ -18,7 +18,7 @@ namespace Moq.Contrib.HttpClient.Test
 
         public ResponseExtensionsTests()
         {
-            handler = new Mock<HttpMessageHandler>();
+            handler = new Mock<HttpMessageHandler>(MockBehavior.Strict);
             client = handler.CreateClient();
 
             // Setting a BaseAddress only affects HttpClient's methods; the handler doesn't know about the BaseAddress
@@ -175,9 +175,6 @@ namespace Moq.Contrib.HttpClient.Test
         [Fact]
         public async Task CanSimulateNetworkErrors()
         {
-            var handler = new Mock<HttpMessageHandler>(MockBehavior.Strict);
-            var client = handler.CreateClient();
-
             // Triggering a network error (e.g. connection refused) can be done using the standard Throws()
             handler.SetupAnyRequest()
                 .Throws<HttpRequestException>();
