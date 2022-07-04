@@ -3,14 +3,12 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Text;
+using System.Net.Http.Json;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Flurl;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using Newtonsoft.Json.Serialization;
 using Xunit;
 
 namespace Moq.Contrib.HttpClient.Test
@@ -136,8 +134,8 @@ namespace Moq.Contrib.HttpClient.Test
                 {
                     // Here we can parse the request json. For this test we'll just check `title`, but if you imagine
                     // this as a service method mock, anything you would check with It.Is() should go here.
-                    var json = JObject.Parse(await request.Content.ReadAsStringAsync());
-                    return json.Value<string>("title") == model.Title;
+                    var json = JsonDocument.Parse(await request.Content.ReadAsStringAsync());
+                    return json.RootElement.GetProperty("title").GetString() == model.Title;
                 })
                 .ReturnsResponse(HttpStatusCode.Created);
 
@@ -148,18 +146,9 @@ namespace Moq.Contrib.HttpClient.Test
             // Imaginary service method that calls the API we're mocking
             async Task CreateSong(object song, string authToken)
             {
-                var json = JsonConvert.SerializeObject(song, new JsonSerializerSettings()
-                {
-                    ContractResolver = new CamelCasePropertyNamesContractResolver()
-                });
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
 
-                var request = new HttpRequestMessage(HttpMethod.Post, url)
-                {
-                    Content = new StringContent(json, Encoding.UTF8, "application/json")
-                };
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
-
-                var response = await client.SendAsync(request);
+                var response = await client.PostAsJsonAsync(url, song);
                 response.EnsureSuccessStatusCode();
             }
 
