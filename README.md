@@ -2,7 +2,7 @@
 
 # Moq.Contrib.HttpClient
 
-[![NuGet][nuget badge]][nuget] [![ci build badge]][ci build] ![tested on badge]
+[![NuGet][nuget badge]][nuget] [![ci build badge]][ci build] [![tested on badge]](#)
 
 [日本語](README.ja.md)
 
@@ -45,7 +45,7 @@ The library adds request/response variants of the standard Moq methods:
 - **Setup** → SetupRequest, SetupAnyRequest
 - **SetupSequence** → SetupRequestSequence, SetupAnyRequestSequence
 - **Verify** → VerifyRequest, VerifyAnyRequest
-- **Returns(Async)** → ReturnsResponse
+- **Returns(Async)** → ReturnsResponse, ReturnsJsonResponse
 
 ### Request
 
@@ -64,13 +64,14 @@ async as well to inspect the request body.
 
 ### Response
 
-The response helpers simplify sending a StringContent, ByteArrayContent,
-StreamContent, or just a status code:
+The response helpers simplify sending a StringContent, JsonContent (using
+[System.Text.Json]), ByteArrayContent, StreamContent, or just a status code:
 
 ```csharp
 ReturnsResponse(HttpStatusCode statusCode[, HttpContent content], Action<HttpResponseMessage> configure = null)
 ReturnsResponse([HttpStatusCode statusCode, ]string content, string mediaType = null, Encoding encoding = null, Action<HttpResponseMessage> configure = null))
 ReturnsResponse([HttpStatusCode statusCode, ]byte[]|Stream content, string mediaType = null, Action<HttpResponseMessage> configure = null)
+ReturnsJsonResponse<T>([HttpStatusCode statusCode, ]T value, JsonSerializerOptions options = null, Action<HttpResponseMessage> configure = null)
 ```
 
 The `statusCode` defaults to 200 OK if omitted, and the `configure` action can
@@ -91,7 +92,7 @@ handler.SetupAnyRequest()
 
 // Match GET requests to an endpoint that returns json (defaults to 200 OK)
 handler.SetupRequest(HttpMethod.Get, "https://example.com/api/stuff")
-    .ReturnsResponse(JsonConvert.SerializeObject(model), "application/json");
+    .ReturnsJsonResponse(model);
 
 // Setting additional headers on the response using the optional configure action
 handler.SetupRequest(HttpMethod.Get, "https://example.com/api/stuff")
@@ -123,7 +124,9 @@ This test fails unexpectedly with the following exception:
 System.InvalidOperationException : Handler did not return a response message.
 ```
 
-This is because Moq defaults to Loose mode which returns a default value if no setup matches, but HttpClient throws an InvalidOperationException if it receives null from the handler.
+This is because Moq defaults to Loose mode which returns a default value if no
+setup matches, but HttpClient throws an InvalidOperationException if it receives
+null from the handler.
 
 If we change it to MockBehavior.Strict:
 
@@ -132,7 +135,8 @@ If we change it to MockBehavior.Strict:
 + var handler = new Mock<HttpMessageHandler>(MockBehavior.Strict);
 ```
 
-We get a more useful exception that also includes the request that was made (here we see the URL was typo'd as "foo" instead of "foos"):
+We get a more useful exception that also includes the request that was made
+(here we see the URL was typo'd as "foo" instead of "foos"):
 
 ```
 Moq.MockException : HttpMessageHandler.SendAsync(Method: GET, RequestUri: 'https://example.com/api/foo', Version: 1.1, Content: <null>, Headers:
@@ -157,7 +161,7 @@ handler
     {
         // This setup will only match calls with the expected id
         var json = await request.Content.ReadAsStringAsync();
-        var model = JsonConvert.DeserializeObject<Model>();
+        var model = JsonSerializer.Deserialize<Model>(json, new JsonSerializerOptions(JsonSerializerDefaults.Web));
         return model.Id == expected.Id;
     })
     .ReturnsResponse(HttpStatusCode.Created);
@@ -174,8 +178,11 @@ handler
 ```
 
 The last example uses a URL builder library called [Flurl] to assist in checking
-the query string. See "MatchesCustomPredicate" and "MatchesQueryParameters" in
-the [request extension tests][RequestExtensionsTests] for further explanation.
+the query string.
+
+See "MatchesCustomPredicate" and "MatchesQueryParameters" in the [request
+extension tests][RequestExtensionsTests] for further explanation, including
+various ways to inspect JSON requests.
 
 ### Setting up a sequence of requests
 
@@ -302,9 +309,9 @@ The library's own unit tests have been written to serve as examples of the
 various helpers and different use cases:
 
 - **[Request extensions tests][RequestExtensionsTests]** &mdash; these cover the
-  Setup & Verify helpers
+  Setup & Verify helpers and explain various ways of matching requests
 - **[Response extensions tests][ResponseExtensionsTests]** &mdash; these cover
-  the ReturnsResponse overloads
+  the ReturnsResponse (and ReturnsJsonResponse) overloads
 - **[Sequence extensions tests][SequenceExtensionsTests]** &mdash; these
   demonstrate mocking explicit sequences, as mentioned above
 
@@ -328,6 +335,7 @@ MIT
 [middleware]: https://docs.microsoft.com/en-us/aspnet/core/fundamentals/http-requests#outgoing-request-middleware
 [named clients]: https://docs.microsoft.com/en-us/aspnet/core/fundamentals/http-requests#named-clients
 [integration tests]: https://docs.microsoft.com/en-us/aspnet/core/test/integration-tests
+[System.Text.Json]: https://docs.microsoft.com/en-us/dotnet/standard/serialization/system-text-json-how-to
 
 [AutoMocker]: https://github.com/moq/Moq.AutoMocker
 [dotnet/runtime#14535]: https://github.com/dotnet/corefx/issues/1624
