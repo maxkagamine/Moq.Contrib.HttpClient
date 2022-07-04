@@ -153,7 +153,7 @@ namespace Moq.Contrib.HttpClient
                 return CreateResponse(
                     request: request,
                     statusCode: statusCode,
-                    content: new StringContent(content, encoding, mediaType),
+                    content: new StringContent(content, encoding, mediaType ?? "text/plain"),
                     configure: configure);
             });
         }
@@ -183,7 +183,7 @@ namespace Moq.Contrib.HttpClient
 
             return setup.ReturnsAsync(CreateResponse(
                 statusCode: statusCode,
-                content: new StringContent(content, encoding, mediaType),
+                content: new StringContent(content, encoding, mediaType ?? "text/plain"),
                 configure: configure));
         }
 
@@ -212,7 +212,7 @@ namespace Moq.Contrib.HttpClient
             {
                 return CreateResponse(
                     request: request,
-                    content: new StringContent(content, encoding, mediaType),
+                    content: new StringContent(content, encoding, mediaType ?? "text/plain"),
                     configure: configure);
             });
         }
@@ -240,7 +240,7 @@ namespace Moq.Contrib.HttpClient
             }
 
             return setup.ReturnsAsync(CreateResponse(
-                content: new StringContent(content, encoding, mediaType),
+                content: new StringContent(content, encoding, mediaType ?? "text/plain"),
                 configure: configure));
         }
 
