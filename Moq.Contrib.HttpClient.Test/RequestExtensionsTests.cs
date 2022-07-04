@@ -20,7 +20,7 @@ namespace Moq.Contrib.HttpClient.Test
         [Fact]
         public async Task MatchesAnyRequest()
         {
-            var handler = new Mock<HttpMessageHandler>();
+            var handler = new Mock<HttpMessageHandler>(MockBehavior.Strict);
             var client = handler.CreateClient(); // Equivalent to `new HttpClient(handler.Object, false)`
 
             // See ResponseExtensionsTests for response examples; this could be shortened to `.ReturnsResponse("foo")`
@@ -37,8 +37,8 @@ namespace Moq.Contrib.HttpClient.Test
             (await client.PostAsync("https://example.com/foo", new StringContent("data"))).Should().BeSameAs(response);
             (await client.GetStringAsync("https://example.com/bar")).Should().Be("foo");
 
-            // Verify methods are provided matching the setup helpers, although HttpClient will throw if the request was
-            // not mocked, so in many cases a Verify will be redundant
+            // Verify methods are provided matching the setup helpers, although even without MockBehavior.Strict,
+            // HttpClient will throw if the request was not mocked, so in many cases a Verify will be redundant
             handler.VerifyAnyRequest(Times.Exactly(3));
         }
 
@@ -84,9 +84,6 @@ namespace Moq.Contrib.HttpClient.Test
             // The handler was created with MockBehavior.Strict which throws a MockException for invocations without setups
             Func<Task> esAttempt = () => GetGreeting("es-ES", "mundo");
             await esAttempt.Should().ThrowAsync<MockException>(because: "a setup for Spanish was not configured");
-
-            handler.VerifyRequest(enUrl, Times.Once());
-            handler.VerifyRequest(jaUrl, Times.Once());
         }
 
         [Theory]
@@ -119,7 +116,7 @@ namespace Moq.Contrib.HttpClient.Test
         [Fact]
         public async Task MatchesCustomPredicate()
         {
-            var handler = new Mock<HttpMessageHandler>();
+            var handler = new Mock<HttpMessageHandler>(MockBehavior.Strict);
             var client = handler.CreateClient();
 
             // Let's simulate posting a song to a music API
@@ -178,8 +175,7 @@ namespace Moq.Contrib.HttpClient.Test
                 Url = "https://vocadb.net/S/21567"
             }, token);
 
-            // Loose mode, so HttpClient receives null and throws InvalidOperationException
-            await wrongSongAttempt.Should().ThrowAsync<InvalidOperationException>("wrong request body");
+            await wrongSongAttempt.Should().ThrowAsync<MockException>("wrong request body");
 
             // Attempt to create the song again, this time without a valid token (if we were actually testing a service,
             // this would probably be a separate unit test)
@@ -190,7 +186,7 @@ namespace Moq.Contrib.HttpClient.Test
         [Fact]
         public async Task MatchesQueryParameters()
         {
-            var handler = new Mock<HttpMessageHandler>();
+            var handler = new Mock<HttpMessageHandler>(MockBehavior.Strict);
             var client = handler.CreateClient();
 
             string baseUrl = "https://example.com:8080/api/v2";
@@ -223,7 +219,7 @@ namespace Moq.Contrib.HttpClient.Test
         [Fact]
         public async Task VerifyHelpersThrowAsExpected() // This one is mainly for code coverage
         {
-            var handler = new Mock<HttpMessageHandler>();
+            var handler = new Mock<HttpMessageHandler>(MockBehavior.Strict);
             var client = handler.CreateClient();
 
             // Mock two different endpoints

@@ -73,7 +73,7 @@ ReturnsResponse([HttpStatusCode statusCode, ]byte[]|Stream content, string media
 
 ```csharp
 // HttpClientで送ったリクエストがモックされるハンドラのSendAsync()中に通る
-var handler = new Mock<HttpMessageHandler>();
+var handler = new Mock<HttpMessageHandler>(MockBehavior.Strict);
 var client = handler.CreateClient();
 
 // すべてのリクエストに404を送る簡単な例え
@@ -91,6 +91,49 @@ handler.SetupRequest(HttpMethod.Get, "https://example.com/api/stuff")
         response.Content.Headers.LastModified = new DateTime(2022, 3, 9);
     });
 ```
+
+<blockquote>
+<details>
+<summary>💡 なぜHttpClientのためにMockBehavior.Strictを使うべき</summary>
+<br />
+
+以下の点を考慮します：
+
+```csharp
+handler.SetupRequest(HttpMethod.Get, "https://example.com/api/foos")
+    .ReturnsJsonResponse(expected);
+
+List<Foo> actual = await foosService.GetFoos();
+
+actual.Should().BeEquivalentTo(expected);
+```
+
+このテストは以下の例外で予期せず失敗する：
+
+```
+System.InvalidOperationException : Handler did not return a response message.
+```
+
+なぜならMoqはセットアップがマッチしない場合既定値を返すLooseモードがデフォルトですが、HttpClientはハンドラからnullを受け取るとInvalidOperationExceptionをスローする
+
+MockBehavior.Strictに変更したら：
+
+```diff
+- var handler = new Mock<HttpMessageHandler>();
++ var handler = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+```
+
+もっと便利な例外をもらって、送ったリクエストも付いてる (ここ、URLがfoosではなくfooとミスされた)：
+
+```
+Moq.MockException : HttpMessageHandler.SendAsync(Method: GET, RequestUri: 'https://example.com/api/foo', Version: 1.1, Content: <null>, Headers:
+{
+}, System.Threading.CancellationToken) invocation failed with mock behavior Strict.
+All invocations on the mock must have a corresponding setup.
+```
+
+</details>
+</blockquote>
 
 ### クエリパラメータやヘッダーやJSONボディでリクエストをマッチする
 

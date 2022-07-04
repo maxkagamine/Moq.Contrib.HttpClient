@@ -82,7 +82,7 @@ be used to set response headers.
 
 ```csharp
 // All requests made with HttpClient go through its handler's SendAsync() which we mock
-var handler = new Mock<HttpMessageHandler>();
+var handler = new Mock<HttpMessageHandler>(MockBehavior.Strict);
 var client = handler.CreateClient();
 
 // A simple example that returns 404 for any request
@@ -100,6 +100,49 @@ handler.SetupRequest(HttpMethod.Get, "https://example.com/api/stuff")
         response.Content.Headers.LastModified = new DateTime(2022, 3, 9);
     });
 ```
+
+<blockquote>
+<details>
+<summary>💡 Why you should use MockBehavior.Strict for HttpClient</summary>
+<br />
+
+Consider the following:
+
+```csharp
+handler.SetupRequest(HttpMethod.Get, "https://example.com/api/foos")
+    .ReturnsJsonResponse(expected);
+
+List<Foo> actual = await foosService.GetFoos();
+
+actual.Should().BeEquivalentTo(expected);
+```
+
+This test fails unexpectedly with the following exception:
+
+```
+System.InvalidOperationException : Handler did not return a response message.
+```
+
+This is because Moq defaults to Loose mode which returns a default value if no setup matches, but HttpClient throws an InvalidOperationException if it receives null from the handler.
+
+If we change it to MockBehavior.Strict:
+
+```diff
+- var handler = new Mock<HttpMessageHandler>();
++ var handler = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+```
+
+We get a more useful exception that also includes the request that was made (here we see the URL was typo'd as "foo" instead of "foos"):
+
+```
+Moq.MockException : HttpMessageHandler.SendAsync(Method: GET, RequestUri: 'https://example.com/api/foo', Version: 1.1, Content: <null>, Headers:
+{
+}, System.Threading.CancellationToken) invocation failed with mock behavior Strict.
+All invocations on the mock must have a corresponding setup.
+```
+
+</details>
+</blockquote>
 
 ### Matching requests by query params, headers, JSON body, etc.
 
