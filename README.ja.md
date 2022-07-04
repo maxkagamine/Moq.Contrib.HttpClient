@@ -211,7 +211,7 @@ public class ExampleTests : IClassFixture<WebApplicationFactory<Startup>>
 
 これで、統合テストは本番環境と同じ`ConfigureServices()`（それともProgram.cs）での依存性注入とHttpClient設定を使う
 
-実例は、[このASP.NET Coreのサンプルのアプリ][IntegrationTestExample]と[その統合テスト][IntegrationTestExample.Test]を見てください
+実例は、[このASP.NET Coreのサンプルのアプリ][IntegrationTestExample.Web]と[その統合テスト][IntegrationTestExample.Test]を見てください
 
 ### より詳細な例
 
@@ -230,11 +230,11 @@ MIT
 [ci build]: https://github.com/maxkagamine/Moq.Contrib.HttpClient/actions?query=workflow%3A%22CI+build%22
 [ci build badge]: https://github.com/maxkagamine/Moq.Contrib.HttpClient/workflows/CI%20build/badge.svg?branch=master&event=push
 
-[RequestExtensionsTests]: test/Moq.Contrib.HttpClient.Test/RequestExtensionsTests.cs
-[ResponseExtensionsTests]: test/Moq.Contrib.HttpClient.Test/ResponseExtensionsTests.cs
-[SequenceExtensionsTests]: test/Moq.Contrib.HttpClient.Test/SequenceExtensionsTests.cs
-[IntegrationTestExample]: test/IntegrationTestExample/Startup.cs
-[IntegrationTestExample.Test]: test/IntegrationTestExample.Test/ExampleTests.cs
+[RequestExtensionsTests]: Moq.Contrib.HttpClient.Test/RequestExtensionsTests.cs
+[ResponseExtensionsTests]: Moq.Contrib.HttpClient.Test/ResponseExtensionsTests.cs
+[SequenceExtensionsTests]: Moq.Contrib.HttpClient.Test/SequenceExtensionsTests.cs
+[IntegrationTestExample.Web]: IntegrationTestExample/IntegrationTestExample.Web/Startup.cs
+[IntegrationTestExample.Test]: IntegrationTestExample/IntegrationTestExample.Test/ExampleTests.cs
 
 [IHttpClientFactory]: https://docs.microsoft.com/ja-jp/aspnet/core/fundamentals/http-requests
 [middleware]: https://docs.microsoft.com/ja-jp/aspnet/core/fundamentals/http-requests#outgoing-request-middleware

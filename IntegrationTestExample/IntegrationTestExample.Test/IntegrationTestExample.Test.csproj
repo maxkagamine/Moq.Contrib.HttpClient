@@ -17,8 +17,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\IntegrationTestExample\IntegrationTestExample.csproj" />
-    <ProjectReference Include="..\..\src\Moq.Contrib.HttpClient\Moq.Contrib.HttpClient.csproj" />
+    <ProjectReference Include="..\IntegrationTestExample.Web\IntegrationTestExample.Web.csproj" />
+    <ProjectReference Include="..\..\Moq.Contrib.HttpClient\Moq.Contrib.HttpClient.csproj" />
   </ItemGroup>
 
 </Project>

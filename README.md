@@ -250,8 +250,8 @@ This way, the integration tests use the same dependency injection and HttpClient
 configurations from `ConfigureServices()` (or Program.cs) as would be used in
 production.
 
-See [this sample ASP.NET Core app][IntegrationTestExample] and [its integration
-test][IntegrationTestExample.Test] for a working example.
+See [this sample ASP.NET Core app][IntegrationTestExample.Web] and [its
+integration test][IntegrationTestExample.Test] for a working example.
 
 ### More in-depth examples
 
@@ -274,11 +274,11 @@ MIT
 [ci build]: https://github.com/maxkagamine/Moq.Contrib.HttpClient/actions?query=workflow%3A%22CI+build%22
 [ci build badge]: https://github.com/maxkagamine/Moq.Contrib.HttpClient/workflows/CI%20build/badge.svg?branch=master&event=push
 
-[RequestExtensionsTests]: test/Moq.Contrib.HttpClient.Test/RequestExtensionsTests.cs
-[ResponseExtensionsTests]: test/Moq.Contrib.HttpClient.Test/ResponseExtensionsTests.cs
-[SequenceExtensionsTests]: test/Moq.Contrib.HttpClient.Test/SequenceExtensionsTests.cs
-[IntegrationTestExample]: test/IntegrationTestExample/Startup.cs
-[IntegrationTestExample.Test]: test/IntegrationTestExample.Test/ExampleTests.cs
+[RequestExtensionsTests]: Moq.Contrib.HttpClient.Test/RequestExtensionsTests.cs
+[ResponseExtensionsTests]: Moq.Contrib.HttpClient.Test/ResponseExtensionsTests.cs
+[SequenceExtensionsTests]: Moq.Contrib.HttpClient.Test/SequenceExtensionsTests.cs
+[IntegrationTestExample.Web]: IntegrationTestExample/IntegrationTestExample.Web/Startup.cs
+[IntegrationTestExample.Test]: IntegrationTestExample/IntegrationTestExample.Test/ExampleTests.cs
 
 [IHttpClientFactory]: https://docs.microsoft.com/en-us/aspnet/core/fundamentals/http-requests
 [middleware]: https://docs.microsoft.com/en-us/aspnet/core/fundamentals/http-requests#outgoing-request-middleware
