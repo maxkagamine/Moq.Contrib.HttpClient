@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace IntegrationTestExample.Models
+namespace IntegrationTestExample.Web.Models
 {
     public class GitHubRepository
     {

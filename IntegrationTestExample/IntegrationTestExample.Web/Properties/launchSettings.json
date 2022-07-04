@@ -15,7 +15,7 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
-    "IntegrationTestExample": {
+    "IntegrationTestExample.Web": {
       "commandName": "Project",
       "dotnetRunMessages": "true",
       "launchBrowser": true,

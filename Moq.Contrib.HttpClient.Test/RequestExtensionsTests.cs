@@ -23,7 +23,7 @@ namespace Moq.Contrib.HttpClient.Test
             var handler = new Mock<HttpMessageHandler>();
             var client = handler.CreateClient(); // Equivalent to `new HttpClient(handler.Object, false)`
 
-            // More easily done as `.ReturnsResponse("foo")` (see the ResponseExtensionsTests for examples)
+            // See ResponseExtensionsTests for response examples; this could be shortened to `.ReturnsResponse("foo")`
             var response = new HttpResponseMessage()
             {
                 Content = new StringContent("foo")
@@ -37,7 +37,8 @@ namespace Moq.Contrib.HttpClient.Test
             (await client.PostAsync("https://example.com/foo", new StringContent("data"))).Should().BeSameAs(response);
             (await client.GetStringAsync("https://example.com/bar")).Should().Be("foo");
 
-            // Verify methods are provided matching the setup helpers
+            // Verify methods are provided matching the setup helpers, although HttpClient will throw if the request was
+            // not mocked, so in many cases a Verify will be redundant
             handler.VerifyAnyRequest(Times.Exactly(3));
         }
 
@@ -47,14 +48,13 @@ namespace Moq.Contrib.HttpClient.Test
             var handler = new Mock<HttpMessageHandler>(MockBehavior.Strict);
             var client = handler.CreateClient();
 
-            // Here we're basing the language off the url, but since it's Moq, we could also specify a setup that checks
-            // the Accept-Language header or any other criteria (overloads taking predicates are provided to simplify
-            // checking the HttpRequestMessage; see other test below)
+            // Here we're basing the language off the url, but we could also specify a setup that checks for example the
+            // Accept-Language header (see MatchesCustomPredicate below)
             var enUrl = "https://example.com/en-US/hello";
             var jaUrl = "https://example.com/ja-JP/hello";
 
-            // The helpers return the same fluent api as the regular Setup, so we can use the normal Moq methods for
-            // more complex responses, in this case based on the request body
+            // The helpers return the same Moq interface as the regular Setup, so we can use the standard Moq methods
+            // for more complex responses, in this case based on the request body
             handler.SetupRequest(enUrl)
                 .Returns(async (HttpRequestMessage request, CancellationToken _) => new HttpResponseMessage()
                 {
@@ -81,9 +81,9 @@ namespace Moq.Contrib.HttpClient.Test
             enGreeting.Should().Be("Hello, world");
             jaGreeting.Should().Be("こんにちは、世界"); // Konnichiwa, sekai
 
-            // This handler was created with MockBehavior.Strict which throws for invocations without setups
+            // The handler was created with MockBehavior.Strict which throws a MockException for invocations without setups
             Func<Task> esAttempt = () => GetGreeting("es-ES", "mundo");
-            await esAttempt.Should().ThrowAsync<MockException>("a setup for Spanish was not configured");
+            await esAttempt.Should().ThrowAsync<MockException>(because: "a setup for Spanish was not configured");
 
             handler.VerifyRequest(enUrl, Times.Once());
             handler.VerifyRequest(jaUrl, Times.Once());
@@ -119,27 +119,26 @@ namespace Moq.Contrib.HttpClient.Test
         [Fact]
         public async Task MatchesCustomPredicate()
         {
-            // Note that if SendAsync() doesn't return a value, i.e. in Loose mode (the default) with no setup,
-            // HttpClient will throw anyway rather than return null
             var handler = new Mock<HttpMessageHandler>();
             var client = handler.CreateClient();
 
-            // Simulating posting a song to a music API
+            // Let's simulate posting a song to a music API
             var url = new Uri("https://example.com/api/songs");
             var token = "auth token obtained somehow";
             var model = new
             {
-                Artist = "regulus feat. 初音ミク Append (Dark)",
-                Title = "Schwarzer Regen",
-                Album = "そこにいたこと",
-                Url = "https://vocadb.net/S/70731"
+                Artist = "Neru feat. Kagamine Rin, Kagamine Len",
+                Title = "The Disease Called Love",
+                Album = "CYNICISM",
+                Url = "https://youtu.be/2IH-toUoq3w"
             };
 
             // Set up a response for a request with this song
             handler
                 .SetupRequest(HttpMethod.Post, url, async request =>
                 {
-                    // Here we can parse the request json
+                    // Here we can parse the request json. For this test we'll just check `title`, but if you imagine
+                    // this as a service method mock, anything you would check with It.Is() should go here.
                     var json = JObject.Parse(await request.Content.ReadAsStringAsync());
                     return json.Value<string>("title") == model.Title;
                 })
@@ -149,7 +148,7 @@ namespace Moq.Contrib.HttpClient.Test
             handler.SetupRequest(r => r.Headers.Authorization?.Parameter != token)
                 .ReturnsResponse(HttpStatusCode.Unauthorized);
 
-            // Imaginary service method
+            // Imaginary service method that calls the API we're mocking
             async Task CreateSong(object song, string authToken)
             {
                 var json = JsonConvert.SerializeObject(song, new JsonSerializerSettings()
@@ -170,7 +169,7 @@ namespace Moq.Contrib.HttpClient.Test
             // Create the song
             await CreateSong(model, token);
 
-            // The setup won't match now if the request json contains a different song
+            // The setup won't match if the request json contains a different song
             Func<Task> wrongSongAttempt = () => CreateSong(new
             {
                 Artist = "鼻そうめんP feat. 初音ミク",
@@ -179,13 +178,13 @@ namespace Moq.Contrib.HttpClient.Test
                 Url = "https://vocadb.net/S/21567"
             }, token);
 
-            // Loose mode, so HttpClient receives null and throws InvalidOperationException instead
+            // Loose mode, so HttpClient receives null and throws InvalidOperationException
             await wrongSongAttempt.Should().ThrowAsync<InvalidOperationException>("wrong request body");
 
-            // Attempt to create the song again, this time without a valid token
-            // (This would be really be two unit tests if we were actually testing a service)
+            // Attempt to create the song again, this time without a valid token (if we were actually testing a service,
+            // this would probably be a separate unit test)
             Func<Task> unauthorizedAttempt = () => CreateSong(model, "expired token");
-            await unauthorizedAttempt.Should().ThrowAsync<HttpRequestException>("this should 400");
+            await unauthorizedAttempt.Should().ThrowAsync<HttpRequestException>("this should 400, causing EnsureSuccessStatusCode() to throw");
         }
 
         [Fact]
@@ -196,24 +195,24 @@ namespace Moq.Contrib.HttpClient.Test
 
             string baseUrl = "https://example.com:8080/api/v2";
 
-            // Flurl can make mocking endpoints easier (see https://flurl.io/docs/fluent-url/). Its methods return a
-            // Url type which implicitly converts back to string. Note that this setup is still matching an exact url.
+            // A URL builder like Flurl can make dealing with query params easier (https://flurl.io/docs/fluent-url/)
             handler.SetupRequest(baseUrl.AppendPathSegment("search").SetQueryParam("q", "fus ro dah"))
                 .ReturnsResponse(HttpStatusCode.OK);
 
-            // When dealing with query params, it's often better to use a predicate as shown above since params may come
-            // in different orders, and we may not need to match all of them either
-            handler.SetupRequest(HttpMethod.Post, r =>
-            {
-                Url url = r.RequestUri; // Implicit conversion from Uri to Url
-                return url.Path == baseUrl.AppendPathSegment("followers/enlist") &&
-                    url.QueryParams["name"].Equals("Lydia");
-            })
+            // Note that the above is still matching an exact url; it's often better instead to use a predicate like so,
+            // since params may come in different orders and we may not need to check all of them either
+            handler
+                .SetupRequest(HttpMethod.Post, r =>
+                {
+                    Url url = r.RequestUri; // Implicit conversion from Uri to Url
+                    return url.Path == baseUrl.AppendPathSegment("followers/enlist") &&
+                        url.QueryParams["name"].Equals("Lydia");
+                })
                 .ReturnsResponse(HttpStatusCode.OK);
 
             await client.GetAsync("https://example.com:8080/api/v2/search?q=fus%20ro%20dah");
 
-            // In this example we've passed additional query params that the test doesn't care about
+            // In this example we've passed an additional query param that the test doesn't care about
             await client.PostAsync("https://example.com:8080/api/v2/followers/enlist?name=Lydia&carryBurdens=yes", null);
 
             // Verifying just to show that both setups were invoked, rather than one for both requests (HttpClient would
@@ -222,7 +221,7 @@ namespace Moq.Contrib.HttpClient.Test
         }
 
         [Fact]
-        public async Task VerifyHelpersThrowAsExpected()
+        public async Task VerifyHelpersThrowAsExpected() // This one is mainly for code coverage
         {
             var handler = new Mock<HttpMessageHandler>();
             var client = handler.CreateClient();

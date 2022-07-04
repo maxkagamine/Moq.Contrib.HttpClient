@@ -2,14 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Json;
-using IntegrationTestExample.Models;
+using IntegrationTestExample.Web.Models;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace IntegrationTestExample
+namespace IntegrationTestExample.Web
 {
     // This is the Empty ASP.NET Core sample project with just a couple changes to demonstrate having an endpoint that
     // uses IHttpClientFactory to make http requests which we'll need to mock for integration tests.
