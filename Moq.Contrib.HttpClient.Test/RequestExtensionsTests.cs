@@ -120,10 +120,11 @@ namespace Moq.Contrib.HttpClient.Test
             // Let's simulate posting a song to a music API
             var url = new Uri("https://example.com/api/songs");
             var token = "auth token obtained somehow";
-            var model = new
+
+            var expected = new Song()
             {
-                Artist = "Neru feat. Kagamine Rin, Kagamine Len",
                 Title = "The Disease Called Love",
+                Artist = "Neru feat. Kagamine Rin, Kagamine Len",
                 Album = "CYNICISM",
                 Url = "https://youtu.be/2IH-toUoq3w"
             };
@@ -132,19 +133,33 @@ namespace Moq.Contrib.HttpClient.Test
             handler
                 .SetupRequest(HttpMethod.Post, url, async request =>
                 {
-                    // Here we can parse the request json. For this test we'll just check `title`, but if you imagine
-                    // this as a service method mock, anything you would check with It.Is() should go here.
-                    var json = JsonDocument.Parse(await request.Content.ReadAsStringAsync());
-                    return json.RootElement.GetProperty("title").GetString() == model.Title;
+                    // Here we can parse the request json. Be sure to use the same serializer options.
+                    // ReadFromJsonAsync<T>() should be avoided here, as Moq might run this matcher a second time, and
+                    // unlike ReadAsStringAsync() it will throw if it tries to read the content again (maybe a bug?).
+                    var json = await request.Content.ReadAsStringAsync();
+                    var model = JsonSerializer.Deserialize<Song>(json, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+
+                    // Anything you would check with It.Is() should go here. Tip: If Song were a record type, we could
+                    // compare the entire object at once using `return json == model`.
+                    return model.Title == expected.Title /* ... */;
                 })
+                // Or, if you know the code under test is using the System.Text.Json extensions, you can skip
+                // deserialization and access the original class directly:
+                // .SetupRequest(HttpMethod.Post, url, async r => ((JsonContent)r.Content).Value == expected)
                 .ReturnsResponse(HttpStatusCode.Created);
+                // Alternatively, to do asserts on the sent model (like a db insert), use Callback to save the model,
+                // and then Verify it was only called once. (You can also just put asserts in the match predicate!)
+                // .Callback((HttpRequestMessage request, CancellationToken _) =>
+                // {
+                //     actual = JsonSerializer.Deserialize<Song>(request.Content.ReadAsStringAsync().Result);
+                // });
 
             // A request without a valid auth token should fail (the last setup takes precedence)
             handler.SetupRequest(r => r.Headers.Authorization?.Parameter != token)
                 .ReturnsResponse(HttpStatusCode.Unauthorized);
 
             // Imaginary service method that calls the API we're mocking
-            async Task CreateSong(object song, string authToken)
+            async Task CreateSong(Song song, string authToken)
             {
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
 
@@ -153,13 +168,13 @@ namespace Moq.Contrib.HttpClient.Test
             }
 
             // Create the song
-            await CreateSong(model, token);
+            await CreateSong(expected, token);
 
             // The setup won't match if the request json contains a different song
-            Func<Task> wrongSongAttempt = () => CreateSong(new
+            Func<Task> wrongSongAttempt = () => CreateSong(new Song()
             {
-                Artist = "鼻そうめんP feat. 初音ミク",
                 Title = "Plug Out (HSP 2012 Remix)",
+                Artist = "鼻そうめんP feat. 初音ミク",
                 Album = "Hiroyuki ODA pres. HSP WORKS 11-14",
                 Url = "https://vocadb.net/S/21567"
             }, token);
@@ -168,7 +183,7 @@ namespace Moq.Contrib.HttpClient.Test
 
             // Attempt to create the song again, this time without a valid token (if we were actually testing a service,
             // this would probably be a separate unit test)
-            Func<Task> unauthorizedAttempt = () => CreateSong(model, "expired token");
+            Func<Task> unauthorizedAttempt = () => CreateSong(expected, "expired token");
             await unauthorizedAttempt.Should().ThrowAsync<HttpRequestException>("this should 400, causing EnsureSuccessStatusCode() to throw");
         }
 
