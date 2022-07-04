@@ -107,29 +107,30 @@ namespace Moq.Contrib.HttpClient.Test
         [InlineData(HttpStatusCode.BadRequest, new byte[] { }, null)]
         public async Task RespondsWithStream(HttpStatusCode? statusCode, byte[] bytes, string mediaType)
         {
-            using MemoryStream stream = new MemoryStream(bytes);
-
-            if (statusCode.HasValue)
+            using (MemoryStream stream = new MemoryStream(bytes))
             {
-                handler.SetupAnyRequest()
-                    .ReturnsResponse(statusCode.Value, stream, mediaType);
+                if (statusCode.HasValue)
+                {
+                    handler.SetupAnyRequest()
+                        .ReturnsResponse(statusCode.Value, stream, mediaType);
+                }
+                else
+                {
+                    // Status code can be omitted and defaults to OK
+                    handler.SetupAnyRequest()
+                        .ReturnsResponse(stream, mediaType);
+                }
+
+                var response = await client.GetAsync("");
+                var responseBytes = await response.Content.ReadAsByteArrayAsync();
+
+                response.Content.Should().BeOfType<StreamContent>();
+                response.StatusCode.Should().Be(statusCode ?? HttpStatusCode.OK);
+                responseBytes.Should().BeEquivalentTo(bytes);
+
+                var responseMediaType = response.Content.Headers.ContentType?.MediaType;
+                responseMediaType.Should().Be(mediaType);
             }
-            else
-            {
-                // Status code can be omitted and defaults to OK
-                handler.SetupAnyRequest()
-                    .ReturnsResponse(stream, mediaType);
-            }
-
-            var response = await client.GetAsync("");
-            var responseBytes = await response.Content.ReadAsByteArrayAsync();
-
-            response.Content.Should().BeOfType<StreamContent>();
-            response.StatusCode.Should().Be(statusCode ?? HttpStatusCode.OK);
-            responseBytes.Should().BeEquivalentTo(bytes);
-
-            var responseMediaType = response.Content.Headers.ContentType?.MediaType;
-            responseMediaType.Should().Be(mediaType);
         }
 
         [Fact]
@@ -229,39 +230,40 @@ namespace Moq.Contrib.HttpClient.Test
             int offsetStreamPosition = 39;
             byte[] expectedOffsetBytes = bytes.Skip(offsetStreamPosition).ToArray();
 
-            using MemoryStream stream = new MemoryStream(bytes);
-            using MemoryStream offsetStream = new MemoryStream(bytes);
+            using (MemoryStream stream = new MemoryStream(bytes))
+            using (MemoryStream offsetStream = new MemoryStream(bytes))
+            {
+                handler.SetupRequest(HttpMethod.Get, "https://example.com/normal")
+                    .ReturnsResponse(stream);
 
-            handler.SetupRequest(HttpMethod.Get, "https://example.com/normal")
-                .ReturnsResponse(stream);
+                // Multiple setups can share the same stream as well
+                handler.SetupRequest(HttpMethod.Get, "https://example.com/normal2")
+                    .ReturnsResponse(stream);
 
-            // Multiple setups can share the same stream as well
-            handler.SetupRequest(HttpMethod.Get, "https://example.com/normal2")
-                .ReturnsResponse(stream);
+                // This stream is the same but seeked forward; each request should read from this position rather than
+                // seeking back to the beginning
+                offsetStream.Seek(offsetStreamPosition, SeekOrigin.Begin);
+                handler.SetupRequest(HttpMethod.Get, "https://example.com/offset")
+                    .ReturnsResponse(offsetStream);
 
-            // This stream is the same but seeked forward; each request should read from this position rather than
-            // seeking back to the beginning
-            offsetStream.Seek(offsetStreamPosition, SeekOrigin.Begin);
-            handler.SetupRequest(HttpMethod.Get, "https://example.com/offset")
-                .ReturnsResponse(offsetStream);
+                var responseBytes1 = await client.GetByteArrayAsync("normal");
+                var responseBytes2 = await client.GetByteArrayAsync("normal");
+                var responseBytes3 = await client.GetByteArrayAsync("normal2");
 
-            var responseBytes1 = await client.GetByteArrayAsync("normal");
-            var responseBytes2 = await client.GetByteArrayAsync("normal");
-            var responseBytes3 = await client.GetByteArrayAsync("normal2");
+                var offsetResponseBytes1 = await client.GetByteArrayAsync("offset");
+                var offsetResponseBytes2 = await client.GetByteArrayAsync("offset");
 
-            var offsetResponseBytes1 = await client.GetByteArrayAsync("offset");
-            var offsetResponseBytes2 = await client.GetByteArrayAsync("offset");
+                responseBytes1.Should().BeEquivalentTo(bytes);
+                responseBytes2.Should().BeEquivalentTo(bytes,
+                    "the stream should be returned to its original position after being read");
+                responseBytes3.Should().BeEquivalentTo(bytes,
+                    "the stream should be reusable not just between requests to one setup but also between setups");
 
-            responseBytes1.Should().BeEquivalentTo(bytes);
-            responseBytes2.Should().BeEquivalentTo(bytes,
-                "the stream should be returned to its original position after being read");
-            responseBytes3.Should().BeEquivalentTo(bytes,
-                "the stream should be reusable not just between requests to one setup but also between setups");
-
-            offsetResponseBytes1.Should().BeEquivalentTo(expectedOffsetBytes,
-                "the stream should read from its initial (offset) position, not necessarily the beginning");
-            offsetResponseBytes2.Should().BeEquivalentTo(expectedOffsetBytes,
-                "the stream should be returned to its original (offset, not zero) position after being read");
+                offsetResponseBytes1.Should().BeEquivalentTo(expectedOffsetBytes,
+                    "the stream should read from its initial (offset) position, not necessarily the beginning");
+                offsetResponseBytes2.Should().BeEquivalentTo(expectedOffsetBytes,
+                    "the stream should be returned to its original (offset, not zero) position after being read");
+            }
         }
     }
 }

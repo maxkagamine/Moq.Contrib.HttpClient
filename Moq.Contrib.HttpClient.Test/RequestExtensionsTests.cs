@@ -109,8 +109,8 @@ namespace Moq.Contrib.HttpClient.Test
             actual.Should().Be(expected);
 
             // Ensure this isn't simply matching any request
-            Func<Task> otherMethodAttempt = () => client.SendAsync(new HttpRequestMessage(HttpMethod.Patch, url));
-            await otherMethodAttempt.Should().ThrowAsync<MockException>("the setup should not match a PATCH request");
+            Func<Task> otherMethodAttempt = () => client.SendAsync(new HttpRequestMessage(HttpMethod.Options, url));
+            await otherMethodAttempt.Should().ThrowAsync<MockException>("the setup should not match an OPTIONS request");
         }
 
         [Fact]
@@ -244,10 +244,6 @@ namespace Moq.Contrib.HttpClient.Test
             Action verifyThreeFoos = () => handler.VerifyRequest(fooUrl, Times.Exactly(3), "oh noes");
             Action verifyFooPosted = () => handler.VerifyRequest(HttpMethod.Post, fooUrl);
             Action verifyBarPosted = () => handler.VerifyRequest(HttpMethod.Post, barUrl, failMessage: "oh noes");
-            Action verifyFooPostedStuff = () => handler.VerifyRequest(HttpMethod.Post, fooUrl,
-                async r => (await r.Content.ReadAsStringAsync()) == "stuff");
-            Action verifyFooPostedOtherStuff = () => handler.VerifyRequest(HttpMethod.Post, fooUrl,
-                async r => (await r.Content.ReadAsStringAsync()) == "other stuff", failMessage: "oh noes");
 
             // Assert that these pass or fail accordingly
             verifyThreeRequests.Should().NotThrow("we made three requests");
@@ -256,11 +252,9 @@ namespace Moq.Contrib.HttpClient.Test
             verifyThreeFoos.Should().Throw<MockException>("there were two requests to foo, not three");
             verifyFooPosted.Should().NotThrow("we sent a POST to foo");
             verifyBarPosted.Should().Throw<MockException>("we did not send a POST to bar");
-            verifyFooPostedStuff.Should().NotThrow("we sent the string \"stuff\"");
-            verifyFooPostedOtherStuff.Should().Throw<MockException>("we sent the string \"stuff\", not \"other stuff\"");
 
             // The fail messages should be passed along as well
-            var messages = new[] { verifyMoreThanThreeRequests, verifyThreeFoos, verifyBarPosted, verifyFooPostedOtherStuff }
+            var messages = new[] { verifyMoreThanThreeRequests, verifyThreeFoos, verifyBarPosted }
                 .Select(f => { try { f(); return null; } catch (MockException ex) { return ex.Message; } });
             messages.Should().OnlyContain(x => x.Contains("oh noes"), "all verify exceptions should contain the failMessage");
         }

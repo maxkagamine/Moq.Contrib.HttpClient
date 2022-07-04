@@ -2,7 +2,7 @@
 
 # Moq.Contrib.HttpClient
 
-[![NuGet][nuget badge]][nuget] [![ci build badge]][ci build]
+[![NuGet][nuget badge]][nuget] [![ci build badge]][ci build] ![tested on badge]
 
 [English](README.md)
 
@@ -269,9 +269,10 @@ public class ExampleTests : IClassFixture<WebApplicationFactory<Startup>>
 MIT
 
 [nuget]: https://www.nuget.org/packages/Moq.Contrib.HttpClient/
-[nuget badge]: https://img.shields.io/nuget/dt/Moq.Contrib.HttpClient?label=Downloads&logo=nuget&logoColor=959da5&labelColor=2d343a
+[nuget badge]: https://img.shields.io/nuget/dt/Moq.Contrib.HttpClient?label=Downloads&logo=nuget&logoColor=959da5&labelColor=2d343a&color=2dbb4e
 [ci build]: https://github.com/maxkagamine/Moq.Contrib.HttpClient/actions?query=workflow%3A%22CI+build%22
 [ci build badge]: https://github.com/maxkagamine/Moq.Contrib.HttpClient/workflows/CI%20build/badge.svg?branch=master&event=push
+[tested on badge]: https://img.shields.io/badge/dynamic/xml?label=tested%20on&query=translate%28%2F%2FPropertyGroup%2FTargetFrameworks%2C%22%3B%22%2C%22%EF%BD%9C%22%29&url=https%3A%2F%2Fraw.githubusercontent.com%2Fmaxkagamine%2FMoq.Contrib.HttpClient%2Fmaster%2FMoq.Contrib.HttpClient.Test%2FMoq.Contrib.HttpClient.Test.csproj&color=555&labelColor=2d343a
 
 [RequestExtensionsTests]: Moq.Contrib.HttpClient.Test/RequestExtensionsTests.cs
 [ResponseExtensionsTests]: Moq.Contrib.HttpClient.Test/ResponseExtensionsTests.cs
