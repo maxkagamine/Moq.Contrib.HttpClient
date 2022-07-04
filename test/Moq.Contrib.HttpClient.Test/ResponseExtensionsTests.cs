@@ -21,34 +21,9 @@ namespace Moq.Contrib.HttpClient.Test
             handler = new Mock<HttpMessageHandler>();
             client = handler.CreateClient();
 
+            // Setting a BaseAddress only affects HttpClient's methods; the handler doesn't know about the BaseAddress
+            // and will receive the resolved url, so setups still need to specify the full request url
             client.BaseAddress = new Uri("https://example.com");
-        }
-
-        [Fact]
-        public async Task CanSetHeaders()
-        {
-            // All overloads here take an action to further configure the response; this is
-            // more useful than a Dictionary as it allows for using the typed header properties
-            handler.SetupAnyRequest()
-                .ReturnsResponse("jinrui ni eikou are", configure: response =>
-                {
-                    response.Headers.Server.Add(new ProductInfoHeaderValue("Bunker", null));
-                    response.Headers.Add("X-Powered-By", "2B");
-                    response.Content.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment")
-                    {
-                        FileName = "yorha.txt"
-                    };
-                });
-
-            var res = await client.GetAsync("");
-            var body = await res.Content.ReadAsStringAsync();
-
-            body.Should().Be("jinrui ni eikou are", "glory to mankind");
-            res.Headers.Server.Should().NotBeNull()
-                .And.Subject.ToString().Should().Be("Bunker");
-            res.Headers.GetValues("X-Powered-By").FirstOrDefault().Should().Be("2B");
-            res.Content.Headers.ContentDisposition.Should().NotBeNull()
-                .And.Subject.ToString().Should().Be("attachment; filename=yorha.txt");
         }
 
         [Theory]
@@ -57,8 +32,6 @@ namespace Moq.Contrib.HttpClient.Test
         [InlineData(HttpStatusCode.Unauthorized)]
         public async Task RespondsWithStatusCode(HttpStatusCode statusCode)
         {
-            // These tests primarily cover the response helpers; see the other
-            // test class for the various request helpers besides SetupAnyRequest
             handler.SetupAnyRequest()
                 .ReturnsResponse(statusCode);
 
@@ -68,9 +41,9 @@ namespace Moq.Contrib.HttpClient.Test
         }
 
         [Theory]
-        [InlineData(null, "miku", null, null)]
-        [InlineData(HttpStatusCode.OK, "{\"name\":\"rin\"}", "application/json", null)]
-        [InlineData(HttpStatusCode.Created, "<luka></luka><!--night fever-->", "text/xml", 932 /* Shift JIS */)]
+        [InlineData(null, "foo", null, null)]
+        [InlineData(HttpStatusCode.OK, @"{ ""foo"": ""bar"" }", "application/json", null)]
+        [InlineData(HttpStatusCode.Created, "<foo>bar</foo>", "text/xml", 932 /* Shift JIS */)]
         public async Task RespondsWithString(HttpStatusCode? statusCode, string content, string mediaType, int? encodingCodePage)
         {
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
@@ -78,14 +51,13 @@ namespace Moq.Contrib.HttpClient.Test
 
             if (statusCode.HasValue)
             {
-                // When using a string, byte array, or stream, the status code, media
-                // type (i.e. content type), and (for string) encoding are optional
+                // Media/content type and encoding are optional; StringContent defaults these to text/plain and UTF-8
                 handler.SetupAnyRequest()
                     .ReturnsResponse(statusCode.Value, content, mediaType, encoding);
             }
             else
             {
-                // Omitting status code defaults to OK
+                // Status code can be omitted and defaults to OK
                 handler.SetupAnyRequest()
                     .ReturnsResponse(content, mediaType, encoding);
             }
@@ -98,16 +70,13 @@ namespace Moq.Contrib.HttpClient.Test
             responseString.Should().Be(content);
 
             var contentType = response.Content.Headers.ContentType;
-            contentType.Should().NotBeNull("StringContent sets a default content type");
-            contentType.MediaType.Should().Be(mediaType ?? "text/plain",
-                mediaType == null ? "this is the default for StringContent" : "");
-            contentType.CharSet.Should().Be((encoding ?? Encoding.UTF8).WebName,
-                encoding == null ? "this is the default for StringContent" : "");
+            contentType.MediaType.Should().Be(mediaType ?? "text/plain");
+            contentType.CharSet.Should().Be((encoding ?? Encoding.UTF8).WebName);
         }
 
         [Theory]
         [InlineData(null, new byte[] { 39, 39, 39, 39 }, "image/png")]
-        [InlineData(HttpStatusCode.BadRequest, new byte[] { 39, 39 }, null)]
+        [InlineData(HttpStatusCode.BadRequest, new byte[] { }, null)]
         public async Task RespondsWithBytes(HttpStatusCode? statusCode, byte[] content, string mediaType)
         {
             if (statusCode.HasValue)
@@ -117,7 +86,7 @@ namespace Moq.Contrib.HttpClient.Test
             }
             else
             {
-                // Omitting status code defaults to OK
+                // Status code can be omitted and defaults to OK
                 handler.SetupAnyRequest()
                     .ReturnsResponse(content, mediaType);
             }
@@ -134,34 +103,33 @@ namespace Moq.Contrib.HttpClient.Test
         }
 
         [Theory]
-        [InlineData(null, new byte[] { 39 }, null)]
-        [InlineData(HttpStatusCode.InternalServerError, new byte[] { 39, 39, 39, 39 }, "audio/flac")]
+        [InlineData(null, new byte[] { 39, 39, 39, 39 }, "image/png")]
+        [InlineData(HttpStatusCode.BadRequest, new byte[] { }, null)]
         public async Task RespondsWithStream(HttpStatusCode? statusCode, byte[] bytes, string mediaType)
         {
-            using (MemoryStream stream = new MemoryStream(bytes))
+            using MemoryStream stream = new MemoryStream(bytes);
+
+            if (statusCode.HasValue)
             {
-                if (statusCode.HasValue)
-                {
-                    handler.SetupAnyRequest()
-                        .ReturnsResponse(statusCode.Value, stream, mediaType);
-                }
-                else
-                {
-                    // Omitting status code defaults to OK
-                    handler.SetupAnyRequest()
-                        .ReturnsResponse(stream, mediaType);
-                }
-
-                var response = await client.GetAsync("");
-                var responseBytes = await response.Content.ReadAsByteArrayAsync();
-
-                response.Content.Should().BeOfType<StreamContent>();
-                response.StatusCode.Should().Be(statusCode ?? HttpStatusCode.OK);
-                responseBytes.Should().BeEquivalentTo(bytes);
-                
-                var responseMediaType = response.Content.Headers.ContentType?.MediaType;
-                responseMediaType.Should().Be(mediaType);
+                handler.SetupAnyRequest()
+                    .ReturnsResponse(statusCode.Value, stream, mediaType);
             }
+            else
+            {
+                // Status code can be omitted and defaults to OK
+                handler.SetupAnyRequest()
+                    .ReturnsResponse(stream, mediaType);
+            }
+
+            var response = await client.GetAsync("");
+            var responseBytes = await response.Content.ReadAsByteArrayAsync();
+
+            response.Content.Should().BeOfType<StreamContent>();
+            response.StatusCode.Should().Be(statusCode ?? HttpStatusCode.OK);
+            responseBytes.Should().BeEquivalentTo(bytes);
+
+            var responseMediaType = response.Content.Headers.ContentType?.MediaType;
+            responseMediaType.Should().Be(mediaType);
         }
 
         [Fact]
@@ -177,77 +145,35 @@ namespace Moq.Contrib.HttpClient.Test
         }
 
         [Fact]
-        public async Task ReturnsNewResponseInstanceEachRequest()
+        public async Task CanSetHeaders()
         {
-            handler.SetupRequest(HttpMethod.Get, "https://example.com/foo") // Handler doesn't know about client's BaseAddress
-                .ReturnsResponse("bar");
+            // All overloads take an action to configure the response and set custom headers; this is more
+            // useful than a Dictionary as it allows for using the typed header properties
+            handler.SetupAnyRequest()
+                .ReturnsResponse("response body", configure: response =>
+                {
+                    response.Headers.Server.Add(new ProductInfoHeaderValue("Nginx", null));
+                    response.Headers.Add("X-Powered-By", "ASP.NET");
+                    response.Content.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment")
+                    {
+                        FileName = "example.txt"
+                    };
+                });
 
-            var response1 = await client.GetAsync("foo");
-            var response2 = await client.GetAsync("foo");
+            var res = await client.GetAsync("");
+            var body = await res.Content.ReadAsStringAsync();
+            var server = res.Headers.Server?.ToString();
+            var poweredBy = res.Headers.GetValues("X-Powered-By").FirstOrDefault();
+            var contentDisposition = res.Content.Headers.ContentDisposition?.ToString();
 
-            // New instances are returned for each request to ensure that subsequent requests don't receive a disposed
-            // HttpResponseMessage or HttpContent
-            response2.Should().NotBeSameAs(response1, "each request should get its own response object");
-            response2.Content.Should().NotBeSameAs(response1.Content, "each response should have its own content object");
-
-            // HttpClient.GetStringAsync() wraps the HttpResponseMessage in a `using` (up until at least .NET 5)
-            (await client.GetStringAsync("foo")).Should().Be("bar");
-            (await client.GetStringAsync("foo")).Should().Be("bar", "the HttpContent should not be disposed");
-
-            handler.VerifyRequest(HttpMethod.Get, "https://example.com/foo", Times.Exactly(4));
+            body.Should().Be("response body");
+            server.Should().Be("Nginx");
+            poweredBy.Should().Be("ASP.NET");
+            contentDisposition.Should().Be("attachment; filename=example.txt");
         }
 
         [Fact]
-        public async Task StreamsReadFromSamePositionEachRequest()
-        {
-            var bytes = new byte[]
-            {
-                121, 111, 117, 116, 117, 98, 101, 46, 99, 111, 109, 47, 112, 108, 97, 121, 108, 105, 115, 116, 63, 108,
-                105, 115, 116, 61, 80, 76, 89, 111, 111, 69, 65, 70, 85, 102, 104, 68, 102, 101, 118, 87, 70, 75, 76,
-                97, 55, 103, 104, 51, 66, 111, 103, 66, 85, 65, 101, 98, 89, 79
-            };
-
-            int offsetStreamPosition = 39;
-            byte[] expectedOffsetBytes = bytes.Skip(offsetStreamPosition).ToArray();
-
-            using (MemoryStream stream = new MemoryStream(bytes))
-            using (MemoryStream offsetStream = new MemoryStream(bytes))
-            {
-                handler.SetupRequest(HttpMethod.Get, "https://example.com/normal")
-                    .ReturnsResponse(stream);
-
-                // Multiple setups can share the same stream as well
-                handler.SetupRequest(HttpMethod.Get, "https://example.com/normal2")
-                    .ReturnsResponse(stream);
-
-                // This stream is the same but seeked forward; each request should read from this position rather than
-                // seeking back to the beginning
-                offsetStream.Seek(offsetStreamPosition, SeekOrigin.Begin);
-                handler.SetupRequest(HttpMethod.Get, "https://example.com/offset")
-                    .ReturnsResponse(offsetStream);
-
-                var responseBytes1 = await client.GetByteArrayAsync("normal");
-                var responseBytes2 = await client.GetByteArrayAsync("normal");
-                var responseBytes3 = await client.GetByteArrayAsync("normal2");
-
-                var offsetResponseBytes1 = await client.GetByteArrayAsync("offset");
-                var offsetResponseBytes2 = await client.GetByteArrayAsync("offset");
-
-                responseBytes1.Should().BeEquivalentTo(bytes);
-                responseBytes2.Should().BeEquivalentTo(bytes,
-                    "the stream should be returned to its original position after being read");
-                responseBytes3.Should().BeEquivalentTo(bytes,
-                    "the stream should be reusable not just between requests to one setup but also between setups");
-
-                offsetResponseBytes1.Should().BeEquivalentTo(expectedOffsetBytes,
-                    "the stream should read from its initial (offset) position, not necessarily the beginning");
-                offsetResponseBytes2.Should().BeEquivalentTo(expectedOffsetBytes,
-                    "the stream should be returned to its original (offset, not zero) position after being read");
-            }
-        }
-
-        [Fact]
-        public async Task SimulateNetworkErrors()
+        public async Task CanSimulateNetworkErrors()
         {
             var handler = new Mock<HttpMessageHandler>(MockBehavior.Strict);
             var client = handler.CreateClient();
@@ -263,6 +189,82 @@ namespace Moq.Contrib.HttpClient.Test
 
             Func<Task> attempt = () => client.GetAsync("http://example.com");
             await attempt.Should().ThrowAsync<HttpRequestException>();
+        }
+
+        [Fact]
+        public async Task ReturnsNewResponseInstanceEachRequest()
+        {
+            handler.SetupRequest(HttpMethod.Get, "https://example.com/foo")
+                .ReturnsResponse("bar");
+
+            var response1 = await client.GetAsync("foo");
+            var response2 = await client.GetAsync("foo");
+
+            // New instances are returned for each request to ensure that subsequent requests don't receive a disposed
+            // HttpResponseMessage or HttpContent
+            response2.Should().NotBeSameAs(response1, "each request should get its own response object");
+            response2.Content.Should().NotBeSameAs(response1.Content, "each response should have its own content object");
+
+            // HttpClient.GetStringAsync() wraps the HttpResponseMessage in a `using` (up until at least .NET 5) which
+            // would cause the second attempt to read the content to throw if it were given the same response object
+            (await client.GetStringAsync("foo")).Should().Be("bar");
+            (await client.GetStringAsync("foo")).Should().Be("bar", "the HttpContent should not be disposed");
+
+            handler.VerifyRequest(HttpMethod.Get, "https://example.com/foo", Times.Exactly(4));
+        }
+
+        [Fact]
+        public async Task StreamsReadFromSamePositionEachRequest()
+        {
+            // ReturnsResponse includes overloads that take a stream. If the stream is seekable (such as a MemoryStream),
+            // it will be wrapped so that each request maintains an independent stream position. This allows multiple
+            // requests (and setups) to read from the same stream without interfering with each other. The wrapper also
+            // prevents a disposing HttpContent from closing the underlying stream. If you have a non-seekable stream
+            // that needs to be used in multiple responses, copy it to a MemoryStream or byte array first.
+            var bytes = new byte[]
+            {
+                0x79, 0x6F, 0x75, 0x74, 0x75, 0x62, 0x65, 0x2E, 0x63, 0x6F, 0x6D, 0x2F, 0x70, 0x6C, 0x61, 0x79,
+                0x6C, 0x69, 0x73, 0x74, 0x3F, 0x6C, 0x69, 0x73, 0x74, 0x3D, 0x50, 0x4C, 0x59, 0x6F, 0x6F, 0x45,
+                0x41, 0x46, 0x55, 0x66, 0x68, 0x44, 0x66, 0x65, 0x76, 0x57, 0x46, 0x4B, 0x4C, 0x61, 0x37, 0x67,
+                0x68, 0x33, 0x42, 0x6F, 0x67, 0x42, 0x55, 0x41, 0x65, 0x62, 0x59, 0x4F
+            };
+
+            int offsetStreamPosition = 39;
+            byte[] expectedOffsetBytes = bytes.Skip(offsetStreamPosition).ToArray();
+
+            using MemoryStream stream = new MemoryStream(bytes);
+            using MemoryStream offsetStream = new MemoryStream(bytes);
+
+            handler.SetupRequest(HttpMethod.Get, "https://example.com/normal")
+                .ReturnsResponse(stream);
+
+            // Multiple setups can share the same stream as well
+            handler.SetupRequest(HttpMethod.Get, "https://example.com/normal2")
+                .ReturnsResponse(stream);
+
+            // This stream is the same but seeked forward; each request should read from this position rather than
+            // seeking back to the beginning
+            offsetStream.Seek(offsetStreamPosition, SeekOrigin.Begin);
+            handler.SetupRequest(HttpMethod.Get, "https://example.com/offset")
+                .ReturnsResponse(offsetStream);
+
+            var responseBytes1 = await client.GetByteArrayAsync("normal");
+            var responseBytes2 = await client.GetByteArrayAsync("normal");
+            var responseBytes3 = await client.GetByteArrayAsync("normal2");
+
+            var offsetResponseBytes1 = await client.GetByteArrayAsync("offset");
+            var offsetResponseBytes2 = await client.GetByteArrayAsync("offset");
+
+            responseBytes1.Should().BeEquivalentTo(bytes);
+            responseBytes2.Should().BeEquivalentTo(bytes,
+                "the stream should be returned to its original position after being read");
+            responseBytes3.Should().BeEquivalentTo(bytes,
+                "the stream should be reusable not just between requests to one setup but also between setups");
+
+            offsetResponseBytes1.Should().BeEquivalentTo(expectedOffsetBytes,
+                "the stream should read from its initial (offset) position, not necessarily the beginning");
+            offsetResponseBytes2.Should().BeEquivalentTo(expectedOffsetBytes,
+                "the stream should be returned to its original (offset, not zero) position after being read");
         }
     }
 }

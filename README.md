@@ -1,21 +1,19 @@
-![](https://raw.githubusercontent.com/maxkagamine/Moq.Contrib.HttpClient/7981a8dfe9c076b10d2dae2234e2f01f57731b6a/banner.png)
+![](.github/images/banner.png)
 
 # Moq.Contrib.HttpClient
 
 [![NuGet][nuget badge]][nuget] [![ci build badge]][ci build]
 
-[nuget badge]: https://img.shields.io/nuget/dt/Moq.Contrib.HttpClient?label=Downloads&logo=nuget&logoColor=959da5&labelColor=2d343a
-[ci build badge]: https://github.com/maxkagamine/Moq.Contrib.HttpClient/workflows/CI%20build/badge.svg?branch=master&event=push
-[nuget]: https://www.nuget.org/packages/Moq.Contrib.HttpClient/
-[ci build]: https://github.com/maxkagamine/Moq.Contrib.HttpClient/actions?query=workflow%3A%22CI+build%22
+[日本語](README.ja.md)
 
-[Blog post](https://kagamine.dev/en/mock-httpclient-the-easy-way/) &nbsp;&middot;&nbsp; [日本語](README.ja.md)
+A set of extension methods for mocking HttpClient and IHttpClientFactory with
+Moq.
 
-A set of extension methods for mocking HttpClient and IHttpClientFactory with Moq.
-
-Mocking HttpClient directly is [notoriously difficult](https://github.com/dotnet/corefx/issues/1624). The solution has generally been to either create a wrapper of some form to mock instead (at the cost of cluttering the code) or use an HttpClient-specific testing library (which requires switching to a separate mocking system for HTTP calls and may not fit well alongside other mocks).
-
-These extension methods make mocking HTTP requests as easy as mocking a service method.
+Mocking HttpClient has historically been [surprisingly
+difficult][dotnet/runtime#14535], with the solution being to either create a
+wrapper to mock instead (at the cost of cluttering the code) or use a separate
+HTTP library entirely. This package provides extension methods that make mocking
+HTTP requests as easy as mocking a service method.
 
 - [Install](#install)
 - [API](#api)
@@ -27,8 +25,11 @@ These extension methods make mocking HTTP requests as easy as mocking a service 
   - [Setting up a sequence of requests](#setting-up-a-sequence-of-requests)
   - [Composing responses based on the request body](#composing-responses-based-on-the-request-body)
   - [Using IHttpClientFactory](#using-ihttpclientfactory)
+    - [Overview](#overview)
+    - [Mocking the factory](#mocking-the-factory)
+    - [Named clients](#named-clients)
   - [Integration tests](#integration-tests)
-  - [Complete unit test examples](#complete-unit-test-examples)
+  - [More in-depth examples](#more-in-depth-examples)
 - [License](#license)
 
 ## Install
@@ -57,11 +58,14 @@ SetupRequest(string|Uri requestUrl[, Predicate<HttpRequestMessage> match])
 SetupRequest(HttpMethod method, string|Uri requestUrl[, Predicate<HttpRequestMessage> match])
 ```
 
-`requestUrl` matches the exact request URL, while the `match` predicate allows for more intricate matching, such as by query params or headers, and may be async as well to inspect the request body.
+`requestUrl` matches the exact request URL, while the `match` predicate allows
+for more intricate matching, such as by query parameters or headers, and may be
+async as well to inspect the request body.
 
 ### Response
 
-The response helpers simplify sending a StringContent, ByteArrayContent, StreamContent, or just a status code:
+The response helpers simplify sending a StringContent, ByteArrayContent,
+StreamContent, or just a status code:
 
 ```csharp
 ReturnsResponse(HttpStatusCode statusCode[, HttpContent content], Action<HttpResponseMessage> configure = null)
@@ -69,7 +73,8 @@ ReturnsResponse([HttpStatusCode statusCode, ]string content, string mediaType = 
 ReturnsResponse([HttpStatusCode statusCode, ]byte[]|Stream content, string mediaType = null, Action<HttpResponseMessage> configure = null)
 ```
 
-The `statusCode` defaults to 200 OK if omitted, and the `configure` action can be used to set response headers.
+The `statusCode` defaults to 200 OK if omitted, and the `configure` action can
+be used to set response headers.
 
 ## Examples
 
@@ -89,15 +94,11 @@ handler.SetupRequest(HttpMethod.Get, "https://example.com/api/stuff")
     .ReturnsResponse(JsonConvert.SerializeObject(model), "application/json");
 
 // Setting additional headers on the response using the optional configure action
-handler.SetupRequest("https://example.com/api/stuff")
-    .ReturnsResponse(bytes, configure: response =>
+handler.SetupRequest(HttpMethod.Get, "https://example.com/api/stuff")
+    .ReturnsResponse(stream, configure: response =>
     {
-        response.Content.Headers.LastModified = new DateTime(2018, 3, 9);
-    })
-    .Verifiable(); // Naturally we can use Moq methods as well
-
-// Verify methods are provided matching the setup helpers
-handler.VerifyAnyRequest(Times.Exactly(3));
+        response.Content.Headers.LastModified = new DateTime(2022, 3, 9);
+    });
 ```
 
 ### Matching requests by query params, headers, JSON body, etc.
@@ -119,31 +120,40 @@ handler
     .ReturnsResponse(HttpStatusCode.Created);
 
 // This is particularly useful for matching URLs with query parameters
-handler.SetupRequest(r =>
-{
-    Url url = r.RequestUri;
-    return url.Path == baseUrl.AppendPathSegment("endpoint") &&
-        url.QueryParams["foo"].Equals("bar");
-})
+handler
+    .SetupRequest(r =>
+    {
+        Url url = r.RequestUri;
+        return url.Path == baseUrl.AppendPathSegment("endpoint") &&
+            url.QueryParams["foo"].Equals("bar");
+    })
     .ReturnsResponse("stuff");
 ```
 
-The last example uses a URL builder library called [Flurl](https://flurl.io/docs/fluent-url/) to assist in checking the query string.
+The last example uses a URL builder library called [Flurl] to assist in checking
+the query string. See "MatchesCustomPredicate" and "MatchesQueryParameters" in
+the [request extension tests][RequestExtensionsTests] for further explanation.
 
 ### Setting up a sequence of requests
 
 Moq has two types of sequences:
 
-1. `SetupSequence()` which creates one setup that returns values in sequence, and
-2. `InSequence().Setup()` which creates multiple setups under `When()` conditions to ensure that they only match in order.
+1. `SetupSequence()` which creates one setup that returns values in sequence,
+   and
+2. `InSequence().Setup()` which creates multiple setups under `When()`
+   conditions to ensure that they only match in order.
 
-Note that in most cases, these are not necessary, and regular setups should be used instead. However, the latter can be useful for cases where separate requests independent of each other must be made in a certain order.
+Both of these are supported; however, as with service methods, regular setups
+are generally most appropriate. The latter type can be useful, though, for cases
+where separate requests independent of each other (that is, not relying on
+information returned from the previous) must be made in a certain order.
 
-See the [sequence extensions tests](test/Moq.Contrib.HttpClient.Test/SequenceExtensionsTests.cs) for examples of each.
+See the [sequence extensions tests][SequenceExtensionsTests] for examples.
 
 ### Composing responses based on the request body
 
-Since it's all still Moq, we can use the normal Returns method together with the request helpers for more complex responses:
+The normal Returns method can be used together with the request helpers for more
+complex responses:
 
 ```csharp
 handler.SetupRequest("https://example.com/hello")
@@ -158,20 +168,40 @@ var body = await response.Content.ReadAsStringAsync(); // Hello, world
 
 ### Using IHttpClientFactory
 
-It's common to see HttpClient wrapped in a `using` since it's IDisposable, but this is, rather counterintuitively, incorrect and [can lead to the application eating up sockets](https://aspnetmonsters.com/2016/08/2016-08-27-httpclientwrong/). The standard advice is to reuse a single HttpClient, yet this has the drawback of not responding to DNS changes.
+#### Overview
 
-ASP.NET Core introduces an [IHttpClientFactory](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/http-requests) which "manages the pooling and lifetime of underlying HttpClientMessageHandler instances to avoid common DNS problems that occur when manually managing HttpClient lifetimes." As a bonus, it also makes HttpClient's [ability to plug in middleware](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/http-requests#outgoing-request-middleware) more accessible &mdash; for example, using [Polly](https://github.com/App-vNext/Polly#polly) to automatically handle retries and failures.
+It's common to see HttpClient wrapped in a `using` since it's IDisposable, but
+this is, rather counterintuitively, incorrect and [can lead to the application
+eating up sockets][httpclientwrong]. The standard advice is to reuse a single
+HttpClient, yet this has the drawback of not responding to DNS changes.
 
-Depending on the usage, your constructors may simply take an HttpClient injected via IHttpClientFactory, in which case the tests don't need to do anything different. If the constructor takes the factory itself instead, this can be mocked the same way:
+ASP.NET Core introduces an [IHttpClientFactory] which "manages the pooling and
+lifetime of underlying HttpClientMessageHandler instances to avoid common DNS
+problems that occur when manually managing HttpClient lifetimes." As a bonus, it
+also makes HttpClient's [ability to plug in middleware][middleware] more
+accessible &mdash; for example, using [Polly] to automatically handle retries
+and failures.
+
+#### Mocking the factory
+
+If your classes simply receive an HttpClient injected via IHttpClientFactory,
+the tests don't need to do anything different. If the constructor takes the
+factory itself instead, this can be mocked the same way:
 
 ```csharp
 var handler = new Mock<HttpMessageHandler>();
 var factory = handler.CreateClientFactory();
 ```
 
-The factory can then be passed into the class or [injected via AutoMocker](https://github.com/moq/Moq.AutoMocker), and code calling `factory.CreateClient()` will receive clients backed by the mock handler.
+This factory can then be passed into the class or [injected via
+AutoMocker][AutoMocker], and code calling `factory.CreateClient()` will receive
+clients backed by the mock handler.
 
-The `CreateClientFactory()` extension method returns a mock that's already set up to return a default client. If you're using [named clients](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/http-requests?view=aspnetcore-3.1#named-clients), a setup can be added like so:
+#### Named clients
+
+The `CreateClientFactory()` extension method returns a mock that's already set
+up to return a default client. If you're using [named clients], a setup can be
+added like so:
 
 ```csharp
 // Configuring a named client (overriding the default)
@@ -184,11 +214,17 @@ Mock.Get(factory).Setup(x => x.CreateClient("api"))
     });
 ```
 
-> Note: If you're getting a "Extension methods (here: HttpClientFactoryExtensions.CreateClient) may not be used in setup / verification expressions." error, make sure you're passing a string where it says `"api"` in the example.
+> Note: If you're getting a "Extension methods (here:
+> HttpClientFactoryExtensions.CreateClient) may not be used in setup /
+> verification expressions." error, make sure you're passing a string where it
+> says `"api"` in the example.
 
 ### Integration tests
 
-For [integration tests](https://docs.microsoft.com/en-us/aspnet/core/test/integration-tests), rather than replace the IHttpClientFactory implementation in the service collection, it's possible to leverage the existing DI infrastructure and configure it to use a mock handler as the "primary" HttpMessageHandler instead:
+For [integration tests], rather than replace the IHttpClientFactory
+implementation in the service collection, it's possible to leverage the existing
+DI infrastructure and configure it to use a mock handler as the "primary"
+instead:
 
 ```csharp
 public class ExampleTests : IClassFixture<WebApplicationFactory<Startup>>
@@ -210,18 +246,47 @@ public class ExampleTests : IClassFixture<WebApplicationFactory<Startup>>
     }
 ```
 
-This way, the integration tests use the same dependency injection and HttpClient configurations from `ConfigureServices()` as would normally be used.
+This way, the integration tests use the same dependency injection and HttpClient
+configurations from `ConfigureServices()` (or Program.cs) as would be used in
+production.
 
-See [this sample ASP.NET Core app](test/IntegrationTestExample/Startup.cs) and [its integration test](test/IntegrationTestExample.Test/ExampleTests.cs) for a working example.
+See [this sample ASP.NET Core app][IntegrationTestExample] and [its integration
+test][IntegrationTestExample.Test] for a working example.
 
-### Complete unit test examples
+### More in-depth examples
 
-Though it may be a faux pas to point to unit tests as documentation, in this case they were written for exactly that purpose, so for more complete usage examples, please see here:
+The library's own unit tests have been written to serve as examples of the
+various helpers and different use cases:
 
-- **[Request extensions tests](test/Moq.Contrib.HttpClient.Test/RequestExtensionsTests.cs)** &mdash; these cover the Setup & Verify helpers
-- **[Response extensions tests](test/Moq.Contrib.HttpClient.Test/ResponseExtensionsTests.cs)** &mdash; these cover the ReturnsResponse overloads
-- **[Sequence extensions tests](test/Moq.Contrib.HttpClient.Test/SequenceExtensionsTests.cs)** &mdash; these demonstrate mocking explicit sequences, as mentioned above
+- **[Request extensions tests][RequestExtensionsTests]** &mdash; these cover the
+  Setup & Verify helpers
+- **[Response extensions tests][ResponseExtensionsTests]** &mdash; these cover
+  the ReturnsResponse overloads
+- **[Sequence extensions tests][SequenceExtensionsTests]** &mdash; these
+  demonstrate mocking explicit sequences, as mentioned above
 
 ## License
 
 MIT
+
+[nuget]: https://www.nuget.org/packages/Moq.Contrib.HttpClient/
+[nuget badge]: https://img.shields.io/nuget/dt/Moq.Contrib.HttpClient?label=Downloads&logo=nuget&logoColor=959da5&labelColor=2d343a
+[ci build]: https://github.com/maxkagamine/Moq.Contrib.HttpClient/actions?query=workflow%3A%22CI+build%22
+[ci build badge]: https://github.com/maxkagamine/Moq.Contrib.HttpClient/workflows/CI%20build/badge.svg?branch=master&event=push
+
+[RequestExtensionsTests]: test/Moq.Contrib.HttpClient.Test/RequestExtensionsTests.cs
+[ResponseExtensionsTests]: test/Moq.Contrib.HttpClient.Test/ResponseExtensionsTests.cs
+[SequenceExtensionsTests]: test/Moq.Contrib.HttpClient.Test/SequenceExtensionsTests.cs
+[IntegrationTestExample]: test/IntegrationTestExample/Startup.cs
+[IntegrationTestExample.Test]: test/IntegrationTestExample.Test/ExampleTests.cs
+
+[IHttpClientFactory]: https://docs.microsoft.com/en-us/aspnet/core/fundamentals/http-requests
+[middleware]: https://docs.microsoft.com/en-us/aspnet/core/fundamentals/http-requests#outgoing-request-middleware
+[named clients]: https://docs.microsoft.com/en-us/aspnet/core/fundamentals/http-requests#named-clients
+[integration tests]: https://docs.microsoft.com/en-us/aspnet/core/test/integration-tests
+
+[AutoMocker]: https://github.com/moq/Moq.AutoMocker
+[dotnet/runtime#14535]: https://github.com/dotnet/corefx/issues/1624
+[Flurl]: https://flurl.io/docs/fluent-url/
+[httpclientwrong]: https://aspnetmonsters.com/2016/08/2016-08-27-httpclientwrong/
+[Polly]: https://github.com/App-vNext/Polly#polly

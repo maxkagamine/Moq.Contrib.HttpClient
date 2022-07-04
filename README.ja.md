@@ -1,21 +1,14 @@
-![](https://raw.githubusercontent.com/maxkagamine/Moq.Contrib.HttpClient/7981a8dfe9c076b10d2dae2234e2f01f57731b6a/banner.ja.png)
+![](.github/images/banner.ja.png)
 
 # Moq.Contrib.HttpClient
 
 [![NuGet][nuget badge]][nuget] [![ci build badge]][ci build]
 
-[nuget badge]: https://img.shields.io/nuget/dt/Moq.Contrib.HttpClient?label=Downloads&logo=nuget&logoColor=959da5&labelColor=2d343a
-[ci build badge]: https://github.com/maxkagamine/Moq.Contrib.HttpClient/workflows/CI%20build/badge.svg?branch=master&event=push
-[nuget]: https://www.nuget.org/packages/Moq.Contrib.HttpClient/
-[ci build]: https://github.com/maxkagamine/Moq.Contrib.HttpClient/actions?query=workflow%3A%22CI+build%22
+[English](README.md)
 
-[ブログ投稿](https://kagamine.dev/ja/httpclient-mock-kantan-na-houhou/) &nbsp;&middot;&nbsp; [English](README.md)
+MoqでHttpClientとIHttpClientFactoryのテストダブルを作るための拡張メソッドです
 
-MoqでHttpClientとIHttpClientFactoryのテストダブルを作るための拡張メソッドのセットです
-
-HttpClientを直接モックするのは難しいことは[よく知られている](https://github.com/dotnet/corefx/issues/1624)。一般の解決法は何かのラッパーを作って代わりにそれをモックすること（コードを乱雑しても）またはHttpClient固有のテスティングライブラリを使うこと（しかしHTTP呼び出しのために別のモックシステムに切り替える必要があるし他のモックとうまく合わないかも）
-
-この拡張メソッドはHTTPリクエストをモックすることをサービスメソッドをモックするように簡単にします
+かつて、HttpClientをモックすることが[驚くほど難しかって][dotnet/runtime#14535]、解決方法はHttpClientそのものをモックする代わりにラッパーを作ること、あるいは他のHTTPライブラリで完全に置き換えることでした。このパッケージはHTTPリクエストのモックをサービスメソッドと同じように簡単にする拡張メソッドを提供する
 
 - [インストール](#インストール)
 - [API](#api)
@@ -23,12 +16,15 @@ HttpClientを直接モックするのは難しいことは[よく知られてい
   - [レスポンス](#レスポンス)
 - [用例](#用例)
   - [一般的な使用法](#一般的な使用法)
-  - [クエリパラメータやヘッダーやJSONの本体でリクエストをマッチする](#クエリパラメータやヘッダーやjsonの本体でリクエストをマッチする)
+  - [クエリパラメータやヘッダーやJSONボディでリクエストをマッチする](#クエリパラメータやヘッダーやjsonボディでリクエストをマッチする)
   - [リクエストのシークエンスをセットアップする](#リクエストのシークエンスをセットアップする)
-  - [リクエストの本体に基づいてレスポンスを書く](#リクエストの本体に基づいてレスポンスを書く)
+  - [リクエストボディに基づいてレスポンスを書く](#リクエストボディに基づいてレスポンスを書く)
   - [IHttpClientFactoryの使い方](#ihttpclientfactoryの使い方)
+    - [概要](#概要)
+    - [ファクトリーをモックする方法](#ファクトリーをモックする方法)
+    - [名前付きクライアント](#名前付きクライアント)
   - [統合テスト](#統合テスト)
-  - [完全なユニットテストの用例](#完全なユニットテストの用例)
+  - [より詳細な例](#より詳細な例)
 - [ライセンス](#ライセンス)
 
 ## インストール
@@ -57,7 +53,7 @@ SetupRequest(string|Uri requestUrl[, Predicate<HttpRequestMessage> match])
 SetupRequest(HttpMethod method, string|Uri requestUrl[, Predicate<HttpRequestMessage> match])
 ```
 
-`requestUrl`は正確なURLをマッチして、`match`という述語はクエリパラメータやヘッダーでマッチできるしリクエストの本体をチェックするためにasyncになれる
+`requestUrl`は正確なURLをマッチして、`match`述語はクエリパラメータやヘッダーでマッチ出来てリクエストボディをチェックするためにasyncになれる
 
 ### レスポンス
 
@@ -69,7 +65,7 @@ ReturnsResponse([HttpStatusCode statusCode, ]string content, string mediaType = 
 ReturnsResponse([HttpStatusCode statusCode, ]byte[]|Stream content, string mediaType = null, Action<HttpResponseMessage> configure = null)
 ```
 
-`statusCode`が省略されると200 OKにディフォルトする。`configure`というアクションがレスポンスのヘッダーを設定するように使える
+`statusCode`が省略されると200 OKにディフォルトする。`configure`アクションがレスポンスのヘッダーを設定するように使える
 
 ## 用例
 
@@ -84,66 +80,63 @@ var client = handler.CreateClient();
 handler.SetupAnyRequest()
     .ReturnsResponse(HttpStatusCode.NotFound);
 
-// JSONを返すエンドポイントへのGETリクエストをマッチする (デフォルトは200 OK)
+// JSONを返すエンドポイントへのGETリクエストをマッチする (200 OKにデフォルトする)
 handler.SetupRequest(HttpMethod.Get, "https://example.com/api/stuff")
     .ReturnsResponse(JsonConvert.SerializeObject(model), "application/json");
 
 // 任意なconfigureアクションでレスポンスにもっとのヘッダーを設定する
-handler.SetupRequest("https://example.com/api/stuff")
+handler.SetupRequest(HttpMethod.Get, "https://example.com/api/stuff")
     .ReturnsResponse(bytes, configure: response =>
     {
-        response.Content.Headers.LastModified = new DateTime(2018, 3, 9);
-    })
-    .Verifiable(); // もちろん、Moqのメソッドも使える
-
-// SetupヘルパーのようなVerifyメソッドがある
-handler.VerifyAnyRequest(Times.Exactly(3));
+        response.Content.Headers.LastModified = new DateTime(2022, 3, 9);
+    });
 ```
 
-### クエリパラメータやヘッダーやJSONの本体でリクエストをマッチする
+### クエリパラメータやヘッダーやJSONボディでリクエストをマッチする
 
 ```csharp
-// リクエストのヘルパーはもっと複雑にマッチするために述語を受け取る
+// もっと複雑にマッチするための述語を受け取れる
 handler.SetupRequest(r => r.Headers.Authorization?.Parameter != authToken)
     .ReturnsResponse(HttpStatusCode.Unauthorized);
 
-// 述語が本体をチェックするためにasyncにもなれる
+// 述語がボディをチェックするためにasyncにもなれる
 handler
     .SetupRequest(HttpMethod.Post, url, async request =>
     {
-        // このセットアップは予期された (expected) IDがあるリクエストのみをマッチする
+        // このセットアップは予期されるIDのあるリクエストのみをマッチする
         var json = await request.Content.ReadAsStringAsync();
         var model = JsonConvert.DeserializeObject<Model>();
         return model.Id == expected.Id;
     })
     .ReturnsResponse(HttpStatusCode.Created);
 
-// とくにはクエリパラメータがあるURLをマッチするために便利です
-handler.SetupRequest(r =>
-{
-    Url url = r.RequestUri;
-    return url.Path == baseUrl.AppendPathSegment("endpoint") &&
-        url.QueryParams["hoge"].Equals("piyo");
-})
+// とくにはクエリパラメータのあるURLをマッチしたら便利です
+handler
+    .SetupRequest(r =>
+    {
+        Url url = r.RequestUri;
+        return url.Path == baseUrl.AppendPathSegment("endpoint") &&
+            url.QueryParams["hoge"].Equals("piyo");
+    })
     .ReturnsResponse("stuff");
 ```
 
-最後の例えはクエリ文字列をチェックするのを手伝うために[Flurl](https://flurl.io/docs/fluent-url/)というURLビルダーのライブラリを使う
+最後のはクエリ文字列のチェックに役立つ[Flurl]というURLビルダーのライブラリを使う。これ以上の説明は[リクエスト拡張のテスト][RequestExtensionsTests]のMatchesCustomPredicateとMatchesQueryParametersを見てください
 
 ### リクエストのシークエンスをセットアップする
 
-Moqは2つシークエンスのタイプがある：
+Moqは2種類のシークエンスがある：
 
 1. `SetupSequence()` は順に値を返す一つセットアップを作る
-2. `InSequence().Setup()` は必ず順にマッチするのために`When()`条件で複数のセットアップを作る
+2. `InSequence().Setup()` は必ず順にマッチするように複数のセットアップを`When()`条件で作る
 
-ほとんどの場合はこれが必要がないし普通のセットアップの方がいいとを注意してください。それでも互いに独立しているリクエストが特定の順序にマッチするの必要がある場合は後者が便利です
+両方がサポートされるけど、サービスメソッドのように、普段は普通のセットアップが最適です。互いに独立しているリクエスト（つまり、前リクエストに返された情報に依存していない）が特定の順序でマッチする必要がある場合は後者が便利です
 
-両方の用例は[シークエンス拡張のテスト](test/Moq.Contrib.HttpClient.Test/SequenceExtensionsTests.cs)を見てください
+用例は[シークエンス拡張のテスト][SequenceExtensionsTests]を見てください
 
-### リクエストの本体に基づいてレスポンスを書く
+### リクエストボディに基づいてレスポンスを書く
 
-すべてはまだMoqなので、もっと複雑のレスポンスのためには普通のMoqのメソッドがリクエストのヘルパーと一緒に使用できる：
+もっと複雑のレスポンスのためには普通のReturnsがリクエストのヘルパーと一緒に使える：
 
 ```csharp
 handler.SetupRequest("https://example.com/hello")
@@ -158,20 +151,26 @@ var body = await response.Content.ReadAsStringAsync(); // こんにちは、世�
 
 ### IHttpClientFactoryの使い方
 
-HttpClientはIDisposableなので`using`中によく入れられてしまう。でも直感に反して、これは間違うし、[ソケットを使い果たしていることにつながる可能性があるんです](https://aspnetmonsters.com/2016/08/2016-08-27-httpclientwrong/)。一般の忠告は単一のHttpClientを再利用することだけどそうしたらDNSの変更に反応しない
+#### 概要
 
-ASP.NET Coreが「`HttpClient`のライフタイムを手動で管理するときに発生する一般的なDNSの問題を回避のために基礎となる`HttpClientMessageHandler`インスタンスのプーリングとライフタイムを管理する」[IHttpClientFactory](https://docs.microsoft.com/ja-jp/aspnet/core/fundamentals/http-requests)を導入する。ボーナスとして、これが[ミドルウェアをプラグインするHttpClientの能力](https://docs.microsoft.com/ja-jp/aspnet/core/fundamentals/http-requests#outgoing-request-middleware)をもっととっつきやすいにする。例えば、再試行と失敗を自動的に処理するために[Polly](https://github.com/App-vNext/Polly#polly)を使うこと
+HttpClientはIDisposableなので`using`中によく入れられてしまうが、直感に反して、これは間違うし[ソケットを使い果たしていることにつながる可能性があるんです][httpclientwrong]。一般の忠告は単一のHttpClientを再利用することですが、そうしたらDNSの変更に反応しない
 
-利用法次第、コンストラクタが単にIHttpClientFactoryによって注入したHttpClientを受け取るかもしれない。その場合はテストが違わない。コンストラクタがファクトリーそのものを受け取る場合は、同じようにモックできる：
+ASP.NET Coreが「HttpClientのライフタイムを手動で管理するときに発生する一般的なDNSの問題を回避のために基礎となるHttpClientMessageHandlerインスタンスのプーリングとライフタイムを管理する」[IHttpClientFactory]を導入する。ボーナスとして、これが[ミドルウェアをプラグインするHttpClientの能力][middleware]をもっととっつきやすいにする。例えば、再試行と失敗を自動的に処理するために[Polly]を使うこと
+
+#### ファクトリーをモックする方法
+
+クラスが単にIHttpClientFactoryによって注入したHttpClientを受け取ると、特に何もする必要がない。コンストラクタがファクトリーそのものを受け取る場合は、同じようにモックできる：
 
 ```csharp
 var handler = new Mock<HttpMessageHandler>();
 var factory = handler.CreateClientFactory();
 ```
 
-このファクトリーはクラスに渡されたり[AutoMockerによって注入されたり](https://github.com/moq/Moq.AutoMocker)できる。`factory.CreateClient()`を呼び出すコードがモックなハンドラを使うクライアントを受ける
+このファクトリーがクラスに渡されたり[AutoMockerによって注入されたり][AutoMocker]できる。`factory.CreateClient()`を呼び出すコードがモックなハンドラを使うクライアントを受ける
 
-`CreateClientFactory()`という拡張メソッドはディフォルトのクライエントを返すようにセットアップされたモックを返す。[名前付きクライアント](https://docs.microsoft.com/ja-jp/aspnet/core/fundamentals/http-requests?view=aspnetcore-3.1#named-clients)を使っている場合は次のようにセットアップを追加できる：
+#### 名前付きクライアント
+
+`CreateClientFactory()`という拡張メソッドはディフォルトのクライエントを返すようにセットアップされたモックを返す。[名前付きクライアント][named clients]を使っている場合は次のようにセットアップを追加できる：
 
 ```csharp
 // 名前付きクライアントも設定する（デフォルトを無効にする）
@@ -188,7 +187,7 @@ Mock.Get(factory).Setup(x => x.CreateClient("api"))
 
 ### 統合テスト
 
-[統合テスト](https://docs.microsoft.com/ja-jp/aspnet/core/test/integration-tests)は、サービスコレクションにあるIHttpClientFactory実装を変えるよりも、既存のDIインフラを活用してプライマリなHttpClientHandlerとしてモックなハンドラを使うように設定できる：
+[統合テスト][integration tests]は、サービスコレクションにあるIHttpClientFactory実装を変えるよりも、既存のDIインフラを活用してプライマリとしてモックなハンドラを使うように設定できる：
 
 ```csharp
 public class ExampleTests : IClassFixture<WebApplicationFactory<Startup>>
@@ -210,18 +209,40 @@ public class ExampleTests : IClassFixture<WebApplicationFactory<Startup>>
     }
 ```
 
-これで、統合テストは普通と同じ`ConfigureServices()`での依存性注入とHttpClient設定を使う
+これで、統合テストは本番環境と同じ`ConfigureServices()`（それともProgram.cs）での依存性注入とHttpClient設定を使う
 
-例については、[このASP.NET Coreのサンプルのアプリ](test/IntegrationTestExample/Startup.cs)と[その統合テスト](test/IntegrationTestExample.Test/ExampleTests.cs)を見てください
+実例は、[このASP.NET Coreのサンプルのアプリ][IntegrationTestExample]と[その統合テスト][IntegrationTestExample.Test]を見てください
 
-### 完全なユニットテストの用例
+### より詳細な例
 
-ユニットテストがドキュメントにもなるために書かれたので、もっと完全な使い方の用例はこちら見てください：
+このライブラリのユニットテストがヘルパーやさまざまなユースケースの例として役立つように書かれた：
 
-- **[リクエスト拡張のテスト](test/Moq.Contrib.HttpClient.Test/RequestExtensionsTests.cs)** &mdash; SetupとVerifyのヘルパーに焦点をあてる
-- **[レスポンス拡張のテスト](test/Moq.Contrib.HttpClient.Test/ResponseExtensionsTests.cs)** &mdash; ReturnsResponseのオーバーロードに焦点をあてます
-- **[シークエンス拡張のテスト](test/Moq.Contrib.HttpClient.Test/SequenceExtensionsTests.cs)** &mdash; 明示的なシークエンスをモックすることを実証する
+- **[リクエスト拡張のテスト][RequestExtensionsTests]** &mdash; SetupとVerifyのヘルパーに焦点をあてる
+- **[レスポンス拡張のテスト][ResponseExtensionsTests]** &mdash; ReturnsResponseのオーバーロードに焦点をあてます
+- **[シークエンス拡張のテスト][SequenceExtensionsTests]** &mdash; 明示的なシークエンスをモックすることを実証する
 
 ## ライセンス
 
 MIT
+
+[nuget]: https://www.nuget.org/packages/Moq.Contrib.HttpClient/
+[nuget badge]: https://img.shields.io/nuget/dt/Moq.Contrib.HttpClient?label=Downloads&logo=nuget&logoColor=959da5&labelColor=2d343a
+[ci build]: https://github.com/maxkagamine/Moq.Contrib.HttpClient/actions?query=workflow%3A%22CI+build%22
+[ci build badge]: https://github.com/maxkagamine/Moq.Contrib.HttpClient/workflows/CI%20build/badge.svg?branch=master&event=push
+
+[RequestExtensionsTests]: test/Moq.Contrib.HttpClient.Test/RequestExtensionsTests.cs
+[ResponseExtensionsTests]: test/Moq.Contrib.HttpClient.Test/ResponseExtensionsTests.cs
+[SequenceExtensionsTests]: test/Moq.Contrib.HttpClient.Test/SequenceExtensionsTests.cs
+[IntegrationTestExample]: test/IntegrationTestExample/Startup.cs
+[IntegrationTestExample.Test]: test/IntegrationTestExample.Test/ExampleTests.cs
+
+[IHttpClientFactory]: https://docs.microsoft.com/ja-jp/aspnet/core/fundamentals/http-requests
+[middleware]: https://docs.microsoft.com/ja-jp/aspnet/core/fundamentals/http-requests#outgoing-request-middleware
+[named clients]: https://docs.microsoft.com/ja-jp/aspnet/core/fundamentals/http-requests#named-clients
+[integration tests]: https://docs.microsoft.com/ja-jp/aspnet/core/test/integration-tests
+
+[AutoMocker]: https://github.com/moq/Moq.AutoMocker
+[dotnet/runtime#14535]: https://github.com/dotnet/corefx/issues/1624
+[Flurl]: https://flurl.io/docs/fluent-url/
+[httpclientwrong]: https://aspnetmonsters.com/2016/08/2016-08-27-httpclientwrong/
+[Polly]: https://github.com/App-vNext/Polly#polly
