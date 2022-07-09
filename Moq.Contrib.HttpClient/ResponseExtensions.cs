@@ -3,7 +3,9 @@ using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Moq.Language;
@@ -40,7 +42,7 @@ namespace Moq.Contrib.HttpClient
         /// </summary>
         /// <param name="setup">The setup.</param>
         /// <param name="statusCode">The status code.</param>
-        /// <param name="configure">An action to further configure the response such as setting headers.</param>
+        /// <param name="configure">An action to configure the response headers.</param>
         public static IReturnsResult<HttpMessageHandler> ReturnsResponse(
             this ISetup<HttpMessageHandler, Task<HttpResponseMessage>> setup,
             HttpStatusCode statusCode,
@@ -60,7 +62,7 @@ namespace Moq.Contrib.HttpClient
         /// </summary>
         /// <param name="setup">The setup.</param>
         /// <param name="statusCode">The status code.</param>
-        /// <param name="configure">An action to further configure the response such as setting headers.</param>
+        /// <param name="configure">An action to configure the response headers.</param>
         public static ISetupSequentialResult<Task<HttpResponseMessage>> ReturnsResponse(
             this ISetupSequentialResult<Task<HttpResponseMessage>> setup,
             HttpStatusCode statusCode,
@@ -77,7 +79,7 @@ namespace Moq.Contrib.HttpClient
         /// <param name="setup">The setup.</param>
         /// <param name="statusCode">The status code.</param>
         /// <param name="content">The response content.</param>
-        /// <param name="configure">An action to further configure the response such as setting headers.</param>
+        /// <param name="configure">An action to configure the response headers.</param>
         /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static IReturnsResult<HttpMessageHandler> ReturnsResponse(
             this ISetup<HttpMessageHandler, Task<HttpResponseMessage>> setup,
@@ -106,7 +108,7 @@ namespace Moq.Contrib.HttpClient
         /// <param name="setup">The setup.</param>
         /// <param name="statusCode">The status code.</param>
         /// <param name="content">The response content.</param>
-        /// <param name="configure">An action to further configure the response such as setting headers.</param>
+        /// <param name="configure">An action to configure the response headers.</param>
         /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static ISetupSequentialResult<Task<HttpResponseMessage>> ReturnsResponse(
             this ISetupSequentialResult<Task<HttpResponseMessage>> setup,
@@ -133,7 +135,7 @@ namespace Moq.Contrib.HttpClient
         /// <param name="content">The response body.</param>
         /// <param name="mediaType">The media type. Defaults to text/plain.</param>
         /// <param name="encoding">The character encoding. Defaults to <see cref="Encoding.UTF8" />.</param>
-        /// <param name="configure">An action to further configure the response such as setting headers.</param>
+        /// <param name="configure">An action to configure the response headers.</param>
         /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static IReturnsResult<HttpMessageHandler> ReturnsResponse(
             this ISetup<HttpMessageHandler, Task<HttpResponseMessage>> setup,
@@ -166,7 +168,7 @@ namespace Moq.Contrib.HttpClient
         /// <param name="content">The response body.</param>
         /// <param name="mediaType">The media type. Defaults to text/plain.</param>
         /// <param name="encoding">The character encoding. Defaults to <see cref="Encoding.UTF8" />.</param>
-        /// <param name="configure">An action to further configure the response such as setting headers.</param>
+        /// <param name="configure">An action to configure the response headers.</param>
         /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static ISetupSequentialResult<Task<HttpResponseMessage>> ReturnsResponse(
             this ISetupSequentialResult<Task<HttpResponseMessage>> setup,
@@ -194,7 +196,7 @@ namespace Moq.Contrib.HttpClient
         /// <param name="content">The response body.</param>
         /// <param name="mediaType">The media type. Defaults to text/plain.</param>
         /// <param name="encoding">The character encoding. Defaults to <see cref="Encoding.UTF8" />.</param>
-        /// <param name="configure">An action to further configure the response such as setting headers.</param>
+        /// <param name="configure">An action to configure the response headers.</param>
         /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static IReturnsResult<HttpMessageHandler> ReturnsResponse(
             this ISetup<HttpMessageHandler, Task<HttpResponseMessage>> setup,
@@ -225,7 +227,7 @@ namespace Moq.Contrib.HttpClient
         /// <param name="content">The response body.</param>
         /// <param name="mediaType">The media type. Defaults to text/plain.</param>
         /// <param name="encoding">The character encoding. Defaults to <see cref="Encoding.UTF8" />.</param>
-        /// <param name="configure">An action to further configure the response such as setting headers.</param>
+        /// <param name="configure">An action to configure the response headers.</param>
         /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static ISetupSequentialResult<Task<HttpResponseMessage>> ReturnsResponse(
             this ISetupSequentialResult<Task<HttpResponseMessage>> setup,
@@ -245,13 +247,104 @@ namespace Moq.Contrib.HttpClient
         }
 
         /// <summary>
+        /// Specifies the response to return, as <see cref="JsonContent" /> using System.Text.Json.
+        /// </summary>
+        /// <param name="setup">The setup.</param>
+        /// <param name="statusCode">The status code.</param>
+        /// <param name="value">The value to serialize.</param>
+        /// <param name="options">Options to control the behavior during serialization, the default options are <see
+        /// cref="JsonSerializerDefaults.Web" />.</param>
+        /// <param name="configure">An action to configure the response headers.</param>
+        public static IReturnsResult<HttpMessageHandler> ReturnsJsonResponse<T>(
+            this ISetup<HttpMessageHandler, Task<HttpResponseMessage>> setup,
+            HttpStatusCode statusCode,
+            T value,
+            JsonSerializerOptions options = null,
+            Action<HttpResponseMessage> configure = null)
+        {
+            return setup.ReturnsAsync((HttpRequestMessage request, CancellationToken _) =>
+            {
+                return CreateResponse(
+                    request: request,
+                    statusCode: statusCode,
+                    content: JsonContent.Create(value, options: options),
+                    configure: configure);
+            });
+        }
+
+        /// <summary>
+        /// Specifies the response to return in sequence, as <see cref="JsonContent" /> using System.Text.Json.
+        /// </summary>
+        /// <param name="setup">The setup.</param>
+        /// <param name="statusCode">The status code.</param>
+        /// <param name="value">The value to serialize.</param>
+        /// <param name="options">Options to control the behavior during serialization, the default options are <see
+        /// cref="JsonSerializerDefaults.Web" />.</param>
+        /// <param name="configure">An action to configure the response headers.</param>
+        public static ISetupSequentialResult<Task<HttpResponseMessage>> ReturnsJsonResponse<T>(
+            this ISetupSequentialResult<Task<HttpResponseMessage>> setup,
+            HttpStatusCode statusCode,
+            T value,
+            JsonSerializerOptions options = null,
+            Action<HttpResponseMessage> configure = null)
+        {
+            return setup.ReturnsAsync(CreateResponse(
+                statusCode: statusCode,
+                content: JsonContent.Create(value, options: options),
+                configure: configure));
+        }
+
+        /// <summary>
+        /// Specifies the response to return, as <see cref="JsonContent" /> using System.Text.Json with <see cref="HttpStatusCode.OK" />.
+        /// </summary>
+        /// <param name="setup">The setup.</param>
+        /// <param name="value">The value to serialize.</param>
+        /// <param name="options">Options to control the behavior during serialization, the default options are <see
+        /// cref="JsonSerializerDefaults.Web" />.</param>
+        /// <param name="configure">An action to configure the response headers.</param>
+        public static IReturnsResult<HttpMessageHandler> ReturnsJsonResponse<T>(
+            this ISetup<HttpMessageHandler, Task<HttpResponseMessage>> setup,
+            T value,
+            JsonSerializerOptions options = null,
+            Action<HttpResponseMessage> configure = null)
+        {
+            return setup.ReturnsAsync((HttpRequestMessage request, CancellationToken _) =>
+            {
+                return CreateResponse(
+                    request: request,
+                    content: JsonContent.Create(value, options: options),
+                    configure: configure);
+            });
+        }
+
+        /// <summary>
+        /// Specifies the response to return in sequence, as <see cref="JsonContent" /> using System.Text.Json with <see
+        /// cref="HttpStatusCode.OK" />.
+        /// </summary>
+        /// <param name="setup">The setup.</param>
+        /// <param name="value">The value to serialize.</param>
+        /// <param name="options">Options to control the behavior during serialization, the default options are <see
+        /// cref="JsonSerializerDefaults.Web" />.</param>
+        /// <param name="configure">An action to configure the response headers.</param>
+        public static ISetupSequentialResult<Task<HttpResponseMessage>> ReturnsJsonResponse<T>(
+            this ISetupSequentialResult<Task<HttpResponseMessage>> setup,
+            T value,
+            JsonSerializerOptions options = null,
+            Action<HttpResponseMessage> configure = null)
+        {
+            return setup.ReturnsAsync(CreateResponse(
+                content: JsonContent.Create(value, options: options),
+                configure: configure));
+        }
+
+        /// <summary>
         /// Specifies the response to return, as <see cref="ByteArrayContent" />.
         /// </summary>
         /// <param name="setup">The setup.</param>
         /// <param name="statusCode">The status code.</param>
         /// <param name="content">The response body.</param>
         /// <param name="mediaType">The media type.</param>
-        /// <param name="configure">An action to further configure the response such as setting headers.</param>
+        /// <param name="configure">An action to configure the response headers.</param>
         /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static IReturnsResult<HttpMessageHandler> ReturnsResponse(
             this ISetup<HttpMessageHandler, Task<HttpResponseMessage>> setup,
@@ -283,7 +376,7 @@ namespace Moq.Contrib.HttpClient
         /// <param name="statusCode">The status code.</param>
         /// <param name="content">The response body.</param>
         /// <param name="mediaType">The media type.</param>
-        /// <param name="configure">An action to further configure the response such as setting headers.</param>
+        /// <param name="configure">An action to configure the response headers.</param>
         /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static ISetupSequentialResult<Task<HttpResponseMessage>> ReturnsResponse(
             this ISetupSequentialResult<Task<HttpResponseMessage>> setup,
@@ -310,7 +403,7 @@ namespace Moq.Contrib.HttpClient
         /// <param name="setup">The setup.</param>
         /// <param name="content">The response body.</param>
         /// <param name="mediaType">The media type.</param>
-        /// <param name="configure">An action to further configure the response such as setting headers.</param>
+        /// <param name="configure">An action to configure the response headers.</param>
         /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static IReturnsResult<HttpMessageHandler> ReturnsResponse(
             this ISetup<HttpMessageHandler, Task<HttpResponseMessage>> setup,
@@ -340,7 +433,7 @@ namespace Moq.Contrib.HttpClient
         /// <param name="setup">The setup.</param>
         /// <param name="content">The response body.</param>
         /// <param name="mediaType">The media type.</param>
-        /// <param name="configure">An action to further configure the response such as setting headers.</param>
+        /// <param name="configure">An action to configure the response headers.</param>
         /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static ISetupSequentialResult<Task<HttpResponseMessage>> ReturnsResponse(
             this ISetupSequentialResult<Task<HttpResponseMessage>> setup,
@@ -367,7 +460,7 @@ namespace Moq.Contrib.HttpClient
         /// <param name="statusCode">The status code.</param>
         /// <param name="content">The response body.</param>
         /// <param name="mediaType">The media type.</param>
-        /// <param name="configure">An action to further configure the response such as setting headers.</param>
+        /// <param name="configure">An action to configure the response headers.</param>
         /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static IReturnsResult<HttpMessageHandler> ReturnsResponse(
             this ISetup<HttpMessageHandler, Task<HttpResponseMessage>> setup,
@@ -401,7 +494,7 @@ namespace Moq.Contrib.HttpClient
         /// <param name="statusCode">The status code.</param>
         /// <param name="content">The response body.</param>
         /// <param name="mediaType">The media type.</param>
-        /// <param name="configure">An action to further configure the response such as setting headers.</param>
+        /// <param name="configure">An action to configure the response headers.</param>
         /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static ISetupSequentialResult<Task<HttpResponseMessage>> ReturnsResponse(
             this ISetupSequentialResult<Task<HttpResponseMessage>> setup,
@@ -430,7 +523,7 @@ namespace Moq.Contrib.HttpClient
         /// <param name="setup">The setup.</param>
         /// <param name="content">The response body.</param>
         /// <param name="mediaType">The media type.</param>
-        /// <param name="configure">An action to further configure the response such as setting headers.</param>
+        /// <param name="configure">An action to configure the response headers.</param>
         /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static IReturnsResult<HttpMessageHandler> ReturnsResponse(
             this ISetup<HttpMessageHandler, Task<HttpResponseMessage>> setup,
@@ -461,7 +554,7 @@ namespace Moq.Contrib.HttpClient
         /// <param name="setup">The setup.</param>
         /// <param name="content">The response body.</param>
         /// <param name="mediaType">The media type.</param>
-        /// <param name="configure">An action to further configure the response such as setting headers.</param>
+        /// <param name="configure">An action to configure the response headers.</param>
         /// <exception cref="ArgumentNullException"><paramref name="content" /> is null.</exception>
         public static ISetupSequentialResult<Task<HttpResponseMessage>> ReturnsResponse(
             this ISetupSequentialResult<Task<HttpResponseMessage>> setup,

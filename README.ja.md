@@ -2,13 +2,13 @@
 
 # Moq.Contrib.HttpClient
 
-[![NuGet][nuget badge]][nuget] [![ci build badge]][ci build] ![tested on badge]
+[![NuGet][nuget badge]][nuget] [![ci build badge]][ci build] [![tested on badge]](#)
 
 [English](README.md)
 
 MoqでHttpClientとIHttpClientFactoryのテストダブルを作るための拡張メソッドです
 
-かつて、HttpClientをモックすることが[驚くほど難しかって][dotnet/runtime#14535]、解決方法はHttpClientそのものをモックする代わりにラッパーを作ること、あるいは他のHTTPライブラリで完全に置き換えることでした。このパッケージはHTTPリクエストのモックをサービスメソッドと同じように簡単にする拡張メソッドを提供する
+かつて、HttpClientをモックすることが[驚くほど難しかって][dotnet/runtime#14535]、解決方法はHttpClientそのものをモックする代わりにラッパーを作ること、あるいは他のHTTPライブラリで完全に置き換えることでした。このパッケージはHTTPリクエストのモックをサービスメソッドと同じように簡単にする拡張メソッドを[Moq]に付加する
 
 - [インストール](#インストール)
 - [API](#api)
@@ -40,7 +40,7 @@ Moqの普通のメソッドにリクエスト版とレスポンス版が追加�
 - **Setup** → SetupRequest, SetupAnyRequest
 - **SetupSequence** → SetupRequestSequence, SetupAnyRequestSequence
 - **Verify** → VerifyRequest, VerifyAnyRequest
-- **Returns(Async)** → ReturnsResponse
+- **Returns(Async)** → ReturnsResponse, ReturnsJsonResponse
 
 ### リクエスト
 
@@ -57,12 +57,13 @@ SetupRequest(HttpMethod method, string|Uri requestUrl[, Predicate<HttpRequestMes
 
 ### レスポンス
 
-レスポンスのヘルパーはStringContent、ByteArrayContent、StreamContent、それともステータスコードだけを送ることを簡単にする：
+レスポンスのヘルパーはStringContent、JsonContent（[System.Text.Json]による）、ByteArrayContent、StreamContent、それともステータスコードだけを送ることを簡単にする：
 
 ```csharp
 ReturnsResponse(HttpStatusCode statusCode[, HttpContent content], Action<HttpResponseMessage> configure = null)
 ReturnsResponse([HttpStatusCode statusCode, ]string content, string mediaType = null, Encoding encoding = null, Action<HttpResponseMessage> configure = null))
 ReturnsResponse([HttpStatusCode statusCode, ]byte[]|Stream content, string mediaType = null, Action<HttpResponseMessage> configure = null)
+ReturnsJsonResponse<T>([HttpStatusCode statusCode, ]T value, JsonSerializerOptions options = null, Action<HttpResponseMessage> configure = null)
 ```
 
 `statusCode`が省略されると200 OKにディフォルトする。`configure`アクションがレスポンスのヘッダーを設定するように使える
@@ -82,7 +83,7 @@ handler.SetupAnyRequest()
 
 // JSONを返すエンドポイントへのGETリクエストをマッチする (200 OKにデフォルトする)
 handler.SetupRequest(HttpMethod.Get, "https://example.com/api/stuff")
-    .ReturnsResponse(JsonConvert.SerializeObject(model), "application/json");
+    .ReturnsJsonResponse(model);
 
 // 任意なconfigureアクションでレスポンスにもっとのヘッダーを設定する
 handler.SetupRequest(HttpMethod.Get, "https://example.com/api/stuff")
@@ -147,9 +148,8 @@ handler
     .SetupRequest(HttpMethod.Post, url, async request =>
     {
         // このセットアップは予期されるIDのあるリクエストのみをマッチする
-        var json = await request.Content.ReadAsStringAsync();
-        var model = JsonConvert.DeserializeObject<Model>();
-        return model.Id == expected.Id;
+        var json = await request.Content.ReadFromJsonAsync<Model>();
+        return json.Id == expected.Id;
     })
     .ReturnsResponse(HttpStatusCode.Created);
 
@@ -164,7 +164,9 @@ handler
     .ReturnsResponse("stuff");
 ```
 
-最後のはクエリ文字列のチェックに役立つ[Flurl]というURLビルダーのライブラリを使う。これ以上の説明は[リクエスト拡張のテスト][RequestExtensionsTests]のMatchesCustomPredicateとMatchesQueryParametersを見てください
+最後のはクエリ文字列のチェックに役立つ[Flurl]というURLビルダーのライブラリを使う
+
+JSONリクエストのいろいろな確認方法など、詳しい説明は[リクエスト拡張のテスト][RequestExtensionsTests]のMatchesCustomPredicateとMatchesQueryParametersを見てください
 
 ### リクエストのシークエンスをセットアップする
 
@@ -260,8 +262,8 @@ public class ExampleTests : IClassFixture<WebApplicationFactory<Startup>>
 
 このライブラリのユニットテストがヘルパーやさまざまなユースケースの例として役立つように書かれた：
 
-- **[リクエスト拡張のテスト][RequestExtensionsTests]** &mdash; SetupとVerifyのヘルパーに焦点をあてる
-- **[レスポンス拡張のテスト][ResponseExtensionsTests]** &mdash; ReturnsResponseのオーバーロードに焦点をあてます
+- **[リクエスト拡張のテスト][RequestExtensionsTests]** &mdash; SetupとVerifyのヘルパーに焦点をあてて、リクエストをマッチするいろいろな方法を説明する
+- **[レスポンス拡張のテスト][ResponseExtensionsTests]** &mdash; ReturnsResponse（とReturnsJsonResponse）のオーバーロードに焦点をあてます
 - **[シークエンス拡張のテスト][SequenceExtensionsTests]** &mdash; 明示的なシークエンスをモックすることを実証する
 
 ## ライセンス
@@ -284,8 +286,10 @@ MIT
 [middleware]: https://docs.microsoft.com/ja-jp/aspnet/core/fundamentals/http-requests#outgoing-request-middleware
 [named clients]: https://docs.microsoft.com/ja-jp/aspnet/core/fundamentals/http-requests#named-clients
 [integration tests]: https://docs.microsoft.com/ja-jp/aspnet/core/test/integration-tests
+[System.Text.Json]: https://docs.microsoft.com/ja-jp/dotnet/standard/serialization/system-text-json-how-to
 
-[AutoMocker]: https://github.com/moq/Moq.AutoMocker
+[Moq]: https://github.com/moq/moq4#readme
+[AutoMocker]: https://github.com/moq/Moq.AutoMocker#readme
 [dotnet/runtime#14535]: https://github.com/dotnet/corefx/issues/1624
 [Flurl]: https://flurl.io/docs/fluent-url/
 [httpclientwrong]: https://aspnetmonsters.com/2016/08/2016-08-27-httpclientwrong/

@@ -3,14 +3,12 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Text;
+using System.Net.Http.Json;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Flurl;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using Newtonsoft.Json.Serialization;
 using Xunit;
 
 namespace Moq.Contrib.HttpClient.Test
@@ -122,10 +120,11 @@ namespace Moq.Contrib.HttpClient.Test
             // Let's simulate posting a song to a music API
             var url = new Uri("https://example.com/api/songs");
             var token = "auth token obtained somehow";
-            var model = new
+
+            var expected = new Song()
             {
-                Artist = "Neru feat. Kagamine Rin, Kagamine Len",
                 Title = "The Disease Called Love",
+                Artist = "Neru feat. Kagamine Rin, Kagamine Len",
                 Album = "CYNICISM",
                 Url = "https://youtu.be/2IH-toUoq3w"
             };
@@ -134,43 +133,46 @@ namespace Moq.Contrib.HttpClient.Test
             handler
                 .SetupRequest(HttpMethod.Post, url, async request =>
                 {
-                    // Here we can parse the request json. For this test we'll just check `title`, but if you imagine
-                    // this as a service method mock, anything you would check with It.Is() should go here.
-                    var json = JObject.Parse(await request.Content.ReadAsStringAsync());
-                    return json.Value<string>("title") == model.Title;
+                    // Here we can parse the request json. Anything you would check with It.Is() should go here. Tip: If
+                    // Song were a record type, we could compare the entire object at once with `return json == expected`
+                    var json = await request.Content.ReadFromJsonAsync<Song>();
+                    return json.Title == expected.Title /* ... */;
                 })
                 .ReturnsResponse(HttpStatusCode.Created);
+                // Or, if you know the code under test is using the System.Text.Json extensions, you can skip
+                // deserialization and access the original class directly:
+                //
+                //   .SetupRequest(HttpMethod.Post, url, async r => ((JsonContent)r.Content).Value == expected)
+                //
+                // Alternatively, to do asserts on the sent model (like a db insert), use Callback to save the model,
+                // and then Verify it was only called once. (You can also just put asserts in the match predicate!)
+                //
+                //   .Callback((HttpRequestMessage request, CancellationToken _) =>
+                //   {
+                //       actual = request.Content.ReadFromJsonAsync<Song>().Result;
+                //   });
 
             // A request without a valid auth token should fail (the last setup takes precedence)
             handler.SetupRequest(r => r.Headers.Authorization?.Parameter != token)
                 .ReturnsResponse(HttpStatusCode.Unauthorized);
 
             // Imaginary service method that calls the API we're mocking
-            async Task CreateSong(object song, string authToken)
+            async Task CreateSong(Song song, string authToken)
             {
-                var json = JsonConvert.SerializeObject(song, new JsonSerializerSettings()
-                {
-                    ContractResolver = new CamelCasePropertyNamesContractResolver()
-                });
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
 
-                var request = new HttpRequestMessage(HttpMethod.Post, url)
-                {
-                    Content = new StringContent(json, Encoding.UTF8, "application/json")
-                };
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
-
-                var response = await client.SendAsync(request);
+                var response = await client.PostAsJsonAsync(url, song);
                 response.EnsureSuccessStatusCode();
             }
 
             // Create the song
-            await CreateSong(model, token);
+            await CreateSong(expected, token);
 
             // The setup won't match if the request json contains a different song
-            Func<Task> wrongSongAttempt = () => CreateSong(new
+            Func<Task> wrongSongAttempt = () => CreateSong(new Song()
             {
-                Artist = "鼻そうめんP feat. 初音ミク",
                 Title = "Plug Out (HSP 2012 Remix)",
+                Artist = "鼻そうめんP feat. 初音ミク",
                 Album = "Hiroyuki ODA pres. HSP WORKS 11-14",
                 Url = "https://vocadb.net/S/21567"
             }, token);
@@ -179,7 +181,7 @@ namespace Moq.Contrib.HttpClient.Test
 
             // Attempt to create the song again, this time without a valid token (if we were actually testing a service,
             // this would probably be a separate unit test)
-            Func<Task> unauthorizedAttempt = () => CreateSong(model, "expired token");
+            Func<Task> unauthorizedAttempt = () => CreateSong(expected, "expired token");
             await unauthorizedAttempt.Should().ThrowAsync<HttpRequestException>("this should 400, causing EnsureSuccessStatusCode() to throw");
         }
 
@@ -214,6 +216,55 @@ namespace Moq.Contrib.HttpClient.Test
             // Verifying just to show that both setups were invoked, rather than one for both requests (HttpClient would
             // have thrown already if none had matched for a request)
             handler.VerifyAll();
+        }
+
+        // This next test ensures that methods that close the request stream, such as ReadFromJsonAsync, can safely be
+        // used in the match predicate. Moq did not intend for matchers to have side effects; its code sometimes calls
+        // the matcher a second time, which would cause these methods to throw as the content had already been consumed:
+        //
+        // https://github.com/moq/moq4/blob/v4.18.1/src/Moq/Match.cs#L182 (when Matches returns true)
+        // https://github.com/moq/moq4/blob/v4.8.0/Source/SetupCollection.cs#L100-L112 (when Matches returns false)
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task MatchPredicateRunsOnlyOnce(bool shouldMatch)
+        {
+            var handler = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+            var client = handler.CreateClient();
+            var predicate = new Mock<Func<HttpRequestMessage, Task<bool>>>();
+
+            // Have the match predicate consume the request content before returning true. This will close the stream,
+            // which means a second invocation with the same request will throw. Having this be a mock allows us to
+            // directly Verify how many times it was called as a second line of defense in case ReadFromJsonAsync's
+            // behavior changes.
+            predicate.Setup(x => x(It.IsAny<HttpRequestMessage>()))
+                .Returns(async (HttpRequestMessage request) =>
+                {
+                    await request.Content.ReadFromJsonAsync<string>();
+                    return shouldMatch;
+                });
+
+            // We'll send two requests, to ensure that the predicate is called once _per request_, not once per setup
+            handler.SetupRequest(predicate.Object)
+                .ReturnsResponse(HttpStatusCode.OK);
+
+            var first = new Uri("https://example.com/first");
+            try
+            {
+                await client.PostAsJsonAsync(first, "");
+            } catch (MockException) { }
+
+            var second = new Uri("https://example.com/second");
+            try
+            {
+                await client.PostAsJsonAsync(second, "");
+            }
+            catch (MockException) { }
+
+            // Verify
+            predicate.Verify(x => x(It.IsAny<HttpRequestMessage>()), Times.Exactly(2));
+            predicate.Verify(x => x(It.Is<HttpRequestMessage>(r => r.RequestUri == first)), Times.Once());
+            predicate.Verify(x => x(It.Is<HttpRequestMessage>(r => r.RequestUri == second)), Times.Once());
         }
 
         [Fact]

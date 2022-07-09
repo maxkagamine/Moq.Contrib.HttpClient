@@ -1,10 +1,13 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Xunit;
@@ -72,6 +75,75 @@ namespace Moq.Contrib.HttpClient.Test
             var contentType = response.Content.Headers.ContentType;
             contentType.MediaType.Should().Be(mediaType ?? "text/plain");
             contentType.CharSet.Should().Be((encoding ?? Encoding.UTF8).WebName);
+        }
+
+        [Fact]
+        public async Task RespondsWithJson()
+        {
+            // Once again using our music API from MatchesCustomPredicate, this time fetching songs
+            var expected = new List<Song>()
+            {
+                new Song()
+                {
+                    Title = "Lost One's Weeping",
+                    Artist = "Neru feat. Kagamine Rin",
+                    Album = "世界征服",
+                    Url = "https://youtu.be/mF4KTG4c-Ic"
+                },
+                new Song()
+                {
+                    Title = "Gimme×Gimme",
+                    Artist = "八王子P, Giga feat. Hatsune Miku, Kagamine Rin",
+                    Album = "Hatsune Miku Magical Mirai 2020",
+                    Url = "https://youtu.be/IfEAtKW2qSI"
+                }
+            };
+
+            handler.SetupRequest(HttpMethod.Get, "https://example.com/api/songs")
+                .ReturnsJsonResponse(expected);
+
+            var actual = await client.GetFromJsonAsync<List<Song>>("api/songs");
+
+            actual.Should().BeEquivalentTo(expected);
+        }
+
+        [Fact]
+        public async Task RespondsWithJsonUsingCustomSerializerOptions()
+        {
+            var model = new Song()
+            {
+                Title = "Onegai Sekai",
+                Artist = "HitoshizukuP, yama△ feat. Kagamine Rin",
+                Album = "Mistletoe ~Kamigami no Yadorigi~",
+                Url = "https://youtu.be/CKvtM4DFkI0"
+            };
+
+            // By default, JsonContent uses JsonSerializerDefaults.Web which camel-cases property names
+            handler.SetupAnyRequest()
+                .ReturnsJsonResponse(HttpStatusCode.Created, model);
+
+            var json = await client.GetStringAsync("");
+            json.Should().Be(
+                @"{""title"":""Onegai Sekai"",""artist"":""HitoshizukuP, yama\u25B3 feat. Kagamine Rin"",""album"":""Mistletoe ~Kamigami no Yadorigi~"",""url"":""https://youtu.be/CKvtM4DFkI0""}");
+
+            // We can pass custom serializer options the same way as JsonContent, PostAsJsonAsync(), etc.
+            // See https://docs.microsoft.com/en-us/dotnet/standard/serialization/system-text-json-how-to#serialization-behavior
+            var options = new JsonSerializerOptions() // Not using the Web defaults
+            {
+                WriteIndented = true
+            };
+
+            handler.SetupAnyRequest()
+                .ReturnsJsonResponse(HttpStatusCode.Created, model, options);
+
+            var pretty = await client.GetStringAsync("");
+            var expected = @"{
+  ""Title"": ""Onegai Sekai"",
+  ""Artist"": ""HitoshizukuP, yama\u25B3 feat. Kagamine Rin"",
+  ""Album"": ""Mistletoe ~Kamigami no Yadorigi~"",
+  ""Url"": ""https://youtu.be/CKvtM4DFkI0""
+}";
+            Assert.Equal(expected, pretty, ignoreLineEndingDifferences: true);
         }
 
         [Theory]
