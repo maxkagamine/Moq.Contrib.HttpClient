@@ -220,6 +220,55 @@ namespace Moq.Contrib.HttpClient.Test
             handler.VerifyAll();
         }
 
+        // This next test ensures that methods that close the request stream, such as ReadFromJsonAsync, can safely be
+        // used in the match predicate. Moq did not intend for matchers to have side effects; its code sometimes calls
+        // the matcher a second time, which would cause these methods to throw as the content had already been consumed:
+        //
+        // https://github.com/moq/moq4/blob/v4.18.1/src/Moq/Match.cs#L182 (when Matches returns true)
+        // https://github.com/moq/moq4/blob/v4.8.0/Source/SetupCollection.cs#L100-L112 (when Matches returns false)
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task MatchPredicateRunsOnlyOnce(bool shouldMatch)
+        {
+            var handler = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+            var client = handler.CreateClient();
+            var predicate = new Mock<Func<HttpRequestMessage, Task<bool>>>();
+
+            // Have the match predicate consume the request content before returning true. This will close the stream,
+            // which means a second invocation with the same request will throw. Having this be a mock allows us to
+            // directly Verify how many times it was called, as a second line of defense in case ReadAsStreamAsync's
+            // behavior changes.
+            predicate.Setup(x => x(It.IsAny<HttpRequestMessage>()))
+                .Returns(async (HttpRequestMessage request) =>
+                {
+                    await request.Content.ReadFromJsonAsync<string>();
+                    return shouldMatch;
+                });
+
+            // We'll send two requests, to ensure that the predicate is called once _per request_, not once per setup
+            handler.SetupRequest(predicate.Object)
+                .ReturnsResponse(HttpStatusCode.OK);
+
+            var first = new Uri("https://example.com/first");
+            try
+            {
+                await client.PostAsJsonAsync(first, "");
+            } catch (MockException) { }
+
+            var second = new Uri("https://example.com/second");
+            try
+            {
+                await client.PostAsJsonAsync(second, "");
+            }
+            catch (MockException) { }
+
+            // Verify
+            predicate.Verify(x => x(It.IsAny<HttpRequestMessage>()), Times.Exactly(2));
+            predicate.Verify(x => x(It.Is<HttpRequestMessage>(r => r.RequestUri == first)), Times.Once());
+            predicate.Verify(x => x(It.Is<HttpRequestMessage>(r => r.RequestUri == second)), Times.Once());
+        }
+
         [Fact]
         public async Task VerifyHelpersThrowAsExpected() // This one is mainly for code coverage
         {
