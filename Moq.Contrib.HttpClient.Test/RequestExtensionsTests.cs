@@ -133,26 +133,24 @@ namespace Moq.Contrib.HttpClient.Test
             handler
                 .SetupRequest(HttpMethod.Post, url, async request =>
                 {
-                    // Here we can parse the request json. Be sure to use the same serializer options.
-                    // ReadFromJsonAsync<T>() should be avoided here, as Moq might run this matcher a second time, and
-                    // unlike ReadAsStringAsync() it will throw if it tries to read the content again (maybe a bug?).
-                    var json = await request.Content.ReadAsStringAsync();
-                    var model = JsonSerializer.Deserialize<Song>(json, new JsonSerializerOptions(JsonSerializerDefaults.Web));
-
-                    // Anything you would check with It.Is() should go here. Tip: If Song were a record type, we could
-                    // compare the entire object at once using `return json == model`.
-                    return model.Title == expected.Title /* ... */;
+                    // Here we can parse the request json. Anything you would check with It.Is() should go here. Tip: If
+                    // Song were a record type, we could compare the entire object at once with `return json == expected`
+                    var json = await request.Content.ReadFromJsonAsync<Song>();
+                    return json.Title == expected.Title /* ... */;
                 })
+                .ReturnsResponse(HttpStatusCode.Created);
                 // Or, if you know the code under test is using the System.Text.Json extensions, you can skip
                 // deserialization and access the original class directly:
-                // .SetupRequest(HttpMethod.Post, url, async r => ((JsonContent)r.Content).Value == expected)
-                .ReturnsResponse(HttpStatusCode.Created);
+                //
+                //   .SetupRequest(HttpMethod.Post, url, async r => ((JsonContent)r.Content).Value == expected)
+                //
                 // Alternatively, to do asserts on the sent model (like a db insert), use Callback to save the model,
                 // and then Verify it was only called once. (You can also just put asserts in the match predicate!)
-                // .Callback((HttpRequestMessage request, CancellationToken _) =>
-                // {
-                //     actual = JsonSerializer.Deserialize<Song>(request.Content.ReadAsStringAsync().Result);
-                // });
+                //
+                //   .Callback((HttpRequestMessage request, CancellationToken _) =>
+                //   {
+                //       actual = request.Content.ReadFromJsonAsync<Song>().Result;
+                //   });
 
             // A request without a valid auth token should fail (the last setup takes precedence)
             handler.SetupRequest(r => r.Headers.Authorization?.Parameter != token)
@@ -237,7 +235,7 @@ namespace Moq.Contrib.HttpClient.Test
 
             // Have the match predicate consume the request content before returning true. This will close the stream,
             // which means a second invocation with the same request will throw. Having this be a mock allows us to
-            // directly Verify how many times it was called, as a second line of defense in case ReadAsStreamAsync's
+            // directly Verify how many times it was called as a second line of defense in case ReadFromJsonAsync's
             // behavior changes.
             predicate.Setup(x => x(It.IsAny<HttpRequestMessage>()))
                 .Returns(async (HttpRequestMessage request) =>

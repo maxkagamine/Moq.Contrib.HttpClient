@@ -12,8 +12,8 @@ Moq.
 Mocking HttpClient has historically been [surprisingly
 difficult][dotnet/runtime#14535], with the solution being to either create a
 wrapper to mock instead (at the cost of cluttering the code) or use a separate
-HTTP library entirely. This package provides extension methods that make mocking
-HTTP requests as easy as mocking a service method.
+HTTP library entirely. This package provides extension methods for [Moq] that
+make handling HTTP requests as easy as mocking a service method.
 
 - [Install](#install)
 - [API](#api)
@@ -160,9 +160,8 @@ handler
     .SetupRequest(HttpMethod.Post, url, async request =>
     {
         // This setup will only match calls with the expected id
-        var json = await request.Content.ReadAsStringAsync();
-        var model = JsonSerializer.Deserialize<Model>(json, new JsonSerializerOptions(JsonSerializerDefaults.Web));
-        return model.Id == expected.Id;
+        var json = await request.Content.ReadFromJsonAsync<Model>();
+        return json.Id == expected.Id;
     })
     .ReturnsResponse(HttpStatusCode.Created);
 
@@ -337,7 +336,8 @@ MIT
 [integration tests]: https://docs.microsoft.com/en-us/aspnet/core/test/integration-tests
 [System.Text.Json]: https://docs.microsoft.com/en-us/dotnet/standard/serialization/system-text-json-how-to
 
-[AutoMocker]: https://github.com/moq/Moq.AutoMocker
+[Moq]: https://github.com/moq/moq4#readme
+[AutoMocker]: https://github.com/moq/Moq.AutoMocker#readme
 [dotnet/runtime#14535]: https://github.com/dotnet/corefx/issues/1624
 [Flurl]: https://flurl.io/docs/fluent-url/
 [httpclientwrong]: https://aspnetmonsters.com/2016/08/2016-08-27-httpclientwrong/

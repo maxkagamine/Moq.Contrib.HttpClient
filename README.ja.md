@@ -8,7 +8,7 @@
 
 MoqでHttpClientとIHttpClientFactoryのテストダブルを作るための拡張メソッドです
 
-かつて、HttpClientをモックすることが[驚くほど難しかって][dotnet/runtime#14535]、解決方法はHttpClientそのものをモックする代わりにラッパーを作ること、あるいは他のHTTPライブラリで完全に置き換えることでした。このパッケージはHTTPリクエストのモックをサービスメソッドと同じように簡単にする拡張メソッドを提供する
+かつて、HttpClientをモックすることが[驚くほど難しかって][dotnet/runtime#14535]、解決方法はHttpClientそのものをモックする代わりにラッパーを作ること、あるいは他のHTTPライブラリで完全に置き換えることでした。このパッケージはHTTPリクエストのモックをサービスメソッドと同じように簡単にする拡張メソッドを[Moq]に付加する
 
 - [インストール](#インストール)
 - [API](#api)
@@ -148,9 +148,8 @@ handler
     .SetupRequest(HttpMethod.Post, url, async request =>
     {
         // このセットアップは予期されるIDのあるリクエストのみをマッチする
-        var json = await request.Content.ReadAsStringAsync();
-        var model = JsonSerializer.Deserialize<Model>(json, new JsonSerializerOptions(JsonSerializerDefaults.Web));
-        return model.Id == expected.Id;
+        var json = await request.Content.ReadFromJsonAsync<Model>();
+        return json.Id == expected.Id;
     })
     .ReturnsResponse(HttpStatusCode.Created);
 
@@ -289,7 +288,8 @@ MIT
 [integration tests]: https://docs.microsoft.com/ja-jp/aspnet/core/test/integration-tests
 [System.Text.Json]: https://docs.microsoft.com/ja-jp/dotnet/standard/serialization/system-text-json-how-to
 
-[AutoMocker]: https://github.com/moq/Moq.AutoMocker
+[Moq]: https://github.com/moq/moq4#readme
+[AutoMocker]: https://github.com/moq/Moq.AutoMocker#readme
 [dotnet/runtime#14535]: https://github.com/dotnet/corefx/issues/1624
 [Flurl]: https://flurl.io/docs/fluent-url/
 [httpclientwrong]: https://aspnetmonsters.com/2016/08/2016-08-27-httpclientwrong/
