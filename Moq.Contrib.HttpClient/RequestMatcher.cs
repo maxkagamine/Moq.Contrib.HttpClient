@@ -23,10 +23,14 @@ namespace Moq.Contrib.HttpClient
         /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
         public static HttpRequestMessage Is(Predicate<HttpRequestMessage> match)
         {
-            if (match == null)
+            if (match is null)
+            {
                 throw new ArgumentNullException(nameof(match));
+            }
 
-            return Match.Create(match, () => Is(match));
+            var requestPredicate = new RequestPredicate(match);
+
+            return Match.Create(requestPredicate.Matches, () => Is(match));
         }
 
         /// <summary>
@@ -36,10 +40,14 @@ namespace Moq.Contrib.HttpClient
         /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
         public static HttpRequestMessage Is(Func<HttpRequestMessage, Task<bool>> match)
         {
-            if (match == null)
+            if (match is null)
+            {
                 throw new ArgumentNullException(nameof(match));
+            }
 
-            return Match.Create(r => match(r).Result, () => Is(match)); // Blocking
+            var requestPredicate = new RequestPredicate(match);
+
+            return Match.Create(requestPredicate.Matches, () => Is(match)); // Blocking
         }
 
         /// <summary>
@@ -64,11 +72,15 @@ namespace Moq.Contrib.HttpClient
         /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
         public static HttpRequestMessage Is(Uri requestUri, Predicate<HttpRequestMessage> match)
         {
-            if (match == null)
+            if (match is null)
+            {
                 throw new ArgumentNullException(nameof(match));
+            }
+
+            var requestPredicate = new RequestPredicate(match);
 
             return Match.Create(
-                r => r.RequestUri == requestUri && match(r),
+                r => r.RequestUri == requestUri && requestPredicate.Matches(r),
                 () => Is(requestUri, match));
         }
 
@@ -80,11 +92,15 @@ namespace Moq.Contrib.HttpClient
         /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
         public static HttpRequestMessage Is(Uri requestUri, Func<HttpRequestMessage, Task<bool>> match)
         {
-            if (match == null)
+            if (match is null)
+            {
                 throw new ArgumentNullException(nameof(match));
+            }
+
+            var requestPredicate = new RequestPredicate(match);
 
             return Match.Create(
-                r => r.RequestUri == requestUri && match(r).Result, // Blocking
+                r => r.RequestUri == requestUri && requestPredicate.Matches(r), // Blocking
                 () => Is(requestUri, match));
         }
 
@@ -114,11 +130,15 @@ namespace Moq.Contrib.HttpClient
         /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
         public static HttpRequestMessage Is(HttpMethod method, Predicate<HttpRequestMessage> match)
         {
-            if (match == null)
+            if (match is null)
+            {
                 throw new ArgumentNullException(nameof(match));
+            }
+
+            var requestPredicate = new RequestPredicate(match);
 
             return Match.Create(
-                r => r.Method == method && match(r),
+                r => r.Method == method && requestPredicate.Matches(r),
                 () => Is(method, match));
         }
 
@@ -130,11 +150,15 @@ namespace Moq.Contrib.HttpClient
         /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
         public static HttpRequestMessage Is(HttpMethod method, Func<HttpRequestMessage, Task<bool>> match)
         {
-            if (match == null)
+            if (match is null)
+            {
                 throw new ArgumentNullException(nameof(match));
+            }
+
+            var requestPredicate = new RequestPredicate(match);
 
             return Match.Create(
-                r => r.Method == method && match(r).Result, // Blocking
+                r => r.Method == method && requestPredicate.Matches(r), // Blocking
                 () => Is(method, match));
         }
 
@@ -165,11 +189,15 @@ namespace Moq.Contrib.HttpClient
         /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
         public static HttpRequestMessage Is(HttpMethod method, Uri requestUri, Predicate<HttpRequestMessage> match)
         {
-            if (match == null)
+            if (match is null)
+            {
                 throw new ArgumentNullException(nameof(match));
+            }
+
+            var requestPredicate = new RequestPredicate(match);
 
             return Match.Create(
-                r => r.Method == method && r.RequestUri == requestUri && match(r),
+                r => r.Method == method && r.RequestUri == requestUri && requestPredicate.Matches(r),
                 () => Is(method, requestUri, match));
         }
 
@@ -182,11 +210,15 @@ namespace Moq.Contrib.HttpClient
         /// <exception cref="ArgumentNullException"><paramref name="match" /> is null.</exception>
         public static HttpRequestMessage Is(HttpMethod method, Uri requestUri, Func<HttpRequestMessage, Task<bool>> match)
         {
-            if (match == null)
+            if (match is null)
+            {
                 throw new ArgumentNullException(nameof(match));
+            }
+
+            var requestPredicate = new RequestPredicate(match);
 
             return Match.Create(
-                r => r.Method == method && r.RequestUri == requestUri && match(r).Result, // Blocking
+                r => r.Method == method && r.RequestUri == requestUri && requestPredicate.Matches(r), // Blocking
                 () => Is(method, requestUri, match));
         }
 
