@@ -35,6 +35,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Pack
-        run: dotnet pack -c Release -p:Version=${GITHUB_REF#refs/tags/v} -o .
+        run: dotnet pack Moq.Contrib.HttpClient -c Release -p:Version=${GITHUB_REF#refs/tags/v} -o .
       - name: Push to NuGet
-        run: dotnet nuget push *.nupkg -k ${{secrets.NUGET_KEY}} -s https://api.nuget.org/v3/index.json
+        run: dotnet nuget push Moq.Contrib.HttpClient.*.nupkg -k ${{secrets.NUGET_KEY}} -s https://api.nuget.org/v3/index.json
